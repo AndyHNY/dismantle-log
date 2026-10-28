@@ -1,0 +1,592 @@
+<!doctype html><html lang="en-GB"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><title>Dismantle Log</title>
+<link rel="manifest" href="manifest.webmanifest"><meta name="theme-color" content="#1c2420"><link rel="icon" href="icon-192.png"><link rel="apple-touch-icon" href="icon-192.png">
+<style>:root{color-scheme:light;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0;font:14px system-ui,sans-serif}img{max-width:100%}[hidden]{display:none!important}</style></head><body>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700&family=Barlow+Condensed:wght@600;700&family=JetBrains+Mono:wght@500&display=swap">
+<style>
+/* Layout: workshop tablet tool. Sticky job bar, one big card per question, thumb-sized controls at the bottom. */
+:root{
+  --bg:#eef0ec; --surface:#ffffff; --sunk:#e2e6df; --line:#c9cfc4;
+  --ink:#1c2420; --ink-2:#4f5a53; --accent:#e8a31a; --accent-ink:#1c2420;
+  --good:#2f7d4f; --warn:#b5651d; --bad:#b23a32; --info:#3b6a8f; --bar:#1c2420; --bar-ink:#eef0ec;
+  --display:"Barlow Condensed","Arial Narrow",system-ui,sans-serif;
+  --body:"Barlow",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --mono:"JetBrains Mono",ui-monospace,Menlo,Consolas,monospace;
+  --r:10px;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#141a17; --surface:#1d2521; --sunk:#252f2a; --line:#36423b;
+  --ink:#e6ebe6; --ink-2:#a3aea6; --accent:#f0b43a; --accent-ink:#141a17;
+  --good:#5cb37f; --warn:#e0954e; --bad:#e2675d; --info:#79a9d1; --bar:#0b0f0d; --bar-ink:#e6ebe6; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#141a17; --surface:#1d2521; --sunk:#252f2a; --line:#36423b;
+  --ink:#e6ebe6; --ink-2:#a3aea6; --accent:#f0b43a; --accent-ink:#141a17;
+  --good:#5cb37f; --warn:#e0954e; --bad:#e2675d; --info:#79a9d1; --bar:#0b0f0d; --bar-ink:#e6ebe6; color-scheme:dark}
+html,body{height:100%}
+body{background:var(--bg);color:var(--ink);font-family:var(--body);font-size:17px;line-height:1.45}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--bar)}
+*{box-sizing:border-box}
+button,input,select,textarea{font:inherit;color:inherit}
+.wrap{max-width:860px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:16px 120px;display:flex;flex-direction:column;gap:16px}
+.bar{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--bar);color:var(--bar-ink)}
+.bar-in{max-width:860px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:10px;display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.bar h1{font-family:var(--display);font-size:24px;letter-spacing:.02em;margin:0;flex:1;min-width:0;text-wrap:balance}
+.bar .sub{font-size:14px;opacity:.8;width:100%}
+.bar button{background:transparent;border:1px solid color-mix(in srgb,var(--bar-ink) 40%,transparent);color:var(--bar-ink);border-radius:8px;padding:8px 12px;min-height:44px;cursor:pointer}
+h2{font-family:var(--display);font-size:26px;margin:0;letter-spacing:.01em;text-wrap:balance}
+h3{font-family:var(--display);font-size:20px;margin:0}
+.muted{color:var(--ink-2)}
+.small{font-size:14px}
+.mono{font-family:var(--mono);font-size:.88em;letter-spacing:.01em}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:16px;display:flex;flex-direction:column;gap:12px;min-width:0}
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.grow{flex:1;min-width:0}
+.btn{min-height:52px;padding:10px 18px;border-radius:var(--r);border:1px solid var(--line);background:var(--surface);cursor:pointer;font-weight:600;display:inline-flex;align-items:center;justify-content:center;gap:8px;text-align:center}
+.btn.primary{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+.btn.dark{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.btn.danger{color:var(--bad);border-color:var(--bad)}
+.btn.block{width:100%}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.btn:focus-visible,.choice:focus-visible,input:focus-visible,textarea:focus-visible,select:focus-visible,.part:focus-visible{outline:3px solid var(--info);outline-offset:2px}
+input[type=text],input[type=number],input[type=password],input[type=search],select,textarea{width:100%;min-height:52px;padding:12px 14px;border:1px solid var(--line);border-radius:var(--r);background:var(--sunk);font-size:19px}
+textarea{min-height:150px;resize:vertical}
+label.f{display:flex;flex-direction:column;gap:6px;font-weight:600;font-size:15px;min-width:0}
+.grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px}
+.progress{height:10px;background:var(--sunk);border-radius:99px;overflow:hidden}
+.progress i{display:block;height:100%;background:var(--good)}
+.tabs{display:flex;gap:6px;flex-wrap:wrap}
+.tabs button{min-height:44px;padding:6px 14px;border-radius:99px;border:1px solid var(--line);background:var(--surface);cursor:pointer;font-weight:600}
+.tabs button[aria-pressed=true]{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.parts{display:flex;flex-direction:column;gap:8px}
+.part{display:grid;grid-template-columns:6px 1fr auto;gap:14px;align-items:center;background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:12px 14px 12px 0;cursor:pointer;text-align:left;width:100%;min-height:68px}
+.part .stripe{align-self:stretch;border-radius:0 4px 4px 0;background:var(--line)}
+.part .nm{font-weight:600;font-size:18px}
+.chip{font-size:13px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;padding:4px 10px;border-radius:99px;border:1px solid currentColor;white-space:nowrap}
+.s-todo{color:var(--ink-2)} .s-prog{color:var(--info)} .s-done{color:var(--good)} .s-dmg{color:var(--warn)} .s-np{color:var(--ink-2)} .s-pend{color:var(--bad)}
+.stripe.s-done{background:var(--good)} .stripe.s-prog{background:var(--info)} .stripe.s-dmg{background:var(--warn)} .stripe.s-pend{background:var(--bad)} .stripe.s-np{background:var(--line)}
+.q{font-family:var(--display);font-size:32px;line-height:1.15;margin:0;text-wrap:balance}
+.stepno{font-family:var(--mono);font-size:14px;color:var(--ink-2);letter-spacing:.05em}
+.choices{display:grid;gap:10px}
+.choices.c3{grid-template-columns:repeat(auto-fit,minmax(180px,1fr))}
+.choices.c4{grid-template-columns:repeat(auto-fit,minmax(150px,1fr))}
+.choice{min-height:84px;border:2px solid var(--line);border-radius:var(--r);background:var(--surface);padding:12px;cursor:pointer;display:flex;flex-direction:column;align-items:flex-start;justify-content:center;gap:4px;text-align:left}
+.choice b{font-family:var(--display);font-size:26px;line-height:1}
+.choice span{font-size:14px;color:var(--ink-2)}
+.choice[aria-pressed=true]{border-color:var(--accent);background:color-mix(in srgb,var(--accent) 16%,var(--surface))}
+.navbar{position:fixed;left:0;right:0;bottom:0;z-index:6;background:var(--surface);border-top:1px solid var(--line);padding-bottom:env(safe-area-inset-bottom,0px)}
+.navbar .in{max-width:860px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:10px;display:flex;gap:10px}
+.navbar .btn{flex:1}
+.info dl{display:grid;grid-template-columns:auto 1fr;gap:6px 14px;margin:0}
+.info dt{color:var(--ink-2);font-size:14px;padding-top:2px}
+.info dd{margin:0;min-width:0;overflow-wrap:anywhere}
+.warnbox{border-left:4px solid var(--warn);background:color-mix(in srgb,var(--warn) 10%,var(--surface));padding:10px 12px;border-radius:6px}
+.thumbs{display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:8px}
+.thumb{position:relative;aspect-ratio:1;border-radius:8px;overflow:hidden;background:var(--sunk);max-width:100%}
+.thumb img{width:100%;height:100%;object-fit:cover;display:block}
+.thumb .lbl{position:absolute;left:0;bottom:0;right:0;background:color-mix(in srgb,var(--ink) 75%,transparent);color:var(--bg);font-family:var(--mono);font-size:11px;padding:3px 6px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.thumb button{position:absolute;top:4px;right:4px;width:36px;height:36px;border-radius:99px;border:0;background:var(--bad);color:#fff;font-weight:700;cursor:pointer}
+.check{display:flex;gap:12px;align-items:center;min-height:60px;padding:10px 14px;border:2px solid var(--line);border-radius:var(--r);cursor:pointer;font-weight:600;background:var(--surface)}
+.check input{width:28px;height:28px;accent-color:var(--good)}
+.review{display:flex;flex-direction:column;gap:0}
+.review button{display:grid;grid-template-columns:minmax(120px,34%) 1fr;gap:12px;text-align:left;background:none;border:0;border-bottom:1px solid var(--line);padding:12px 4px;cursor:pointer;min-height:52px}
+.review button span:first-child{color:var(--ink-2);font-size:15px}
+.review button span:last-child{overflow-wrap:anywhere}
+.missing{color:var(--bad);font-weight:600}
+.toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(90px + env(safe-area-inset-bottom,0px));background:var(--ink);color:var(--bg);padding:12px 18px;border-radius:99px;z-index:20;font-weight:600;max-width:calc(100% - 32px)}
+.sample{background:color-mix(in srgb,var(--accent) 22%,var(--surface));border:1px dashed var(--accent);padding:8px 12px;border-radius:8px;font-size:14px}
+.modal{position:fixed;inset:0;background:color-mix(in srgb,var(--ink) 55%,transparent);z-index:30;display:flex;align-items:flex-end;justify-content:center;padding:16px}
+.modal .card{width:100%;max-width:560px;max-height:90vh;overflow:auto}
+.chips{display:flex;gap:6px;flex-wrap:wrap}
+.chips button{min-height:40px;padding:4px 12px;border-radius:99px;border:1px solid var(--line);background:var(--sunk);cursor:pointer}
+.stat{display:flex;gap:18px;flex-wrap:wrap;font-variant-numeric:tabular-nums}
+.stat b{font-family:var(--display);font-size:28px;display:block;line-height:1}
+@media (prefers-reduced-motion: no-preference){.choice,.btn{transition:background .12s,border-color .12s}}
+</style>
+
+<div id="app"></div>
+<input type="file" id="camera" accept="image/*" capture="environment" hidden>
+<input type="file" id="xlsxfile" accept=".xlsx,.xlsm" hidden>
+
+<script>
+"use strict";
+const LIB = [["Part Name (catalogue)","Category"],["Bonnet / Hood","Bodywork & Chassis"],["Bonnet Gas Strut L/H","Bodywork & Chassis"],["Bonnet Gas Strut R/H","Bodywork & Chassis"],["Bonnet Latch","Bodywork & Chassis"],["Front Grille/Plate","Bodywork & Chassis"],["Side Panel L/H","Bodywork & Chassis"],["Side Panel R/H","Bodywork & Chassis"],["Front Fender L/H","Bodywork & Chassis"],["Front Fender R/H","Bodywork & Chassis"],["Front Fender Bracket L/H","Bodywork & Chassis"],["Front Fender Bracket R/H","Bodywork & Chassis"],["Rear Fender L/H","Bodywork & Chassis"],["Rear Fender R/H","Bodywork & Chassis"],["Fender Extension L/H","Bodywork & Chassis"],["Fender Extension R/H","Bodywork & Chassis"],["Side Rails L/H","Bodywork & Chassis"],["Side Rails R/H","Bodywork & Chassis"],["Handrail L/H","Bodywork & Chassis"],["Handrail R/H","Bodywork & Chassis"],["Steps L/H","Bodywork & Chassis"],["Steps R/H","Bodywork & Chassis"],["Toolbox","Bodywork & Chassis"],["Sump / Belly Guard","Bodywork & Chassis"],["Cab","Cab Structure & Glass"],["Cab Frame / ROPS","Cab Structure & Glass"],["Cab Mount (front) L/H","Cab Structure & Glass"],["Cab Mount (front) R/H","Cab Structure & Glass"],["Cab Mount (rear) L/H","Cab Structure & Glass"],["Cab Mount (rear) R/H","Cab Structure & Glass"],["Cab Suspension Shock L/H","Cab Structure & Glass"],["Cab Suspension Shock R/H","Cab Structure & Glass"],["Roof Panel","Cab Structure & Glass"],["Hatch Panel","Cab Structure & Glass"],["Headliner / Roof Lining","Cab Structure & Glass"],["Door (complete) L/H","Cab Structure & Glass"],["Door (complete) R/H","Cab Structure & Glass"],["R/H Side Window","Cab Structure & Glass"],["Door Glass L/H","Cab Structure & Glass"],["Door Glass R/H","Cab Structure & Glass"],["Quarter Glass L/H","Cab Structure & Glass"],["Quarter Glass R/H","Cab Structure & Glass"],["Window Regulator L/H","Cab Structure & Glass"],["Window Regulator R/H","Cab Structure & Glass"],["Door Accessories / Trim L/H","Cab Structure & Glass"],["Door Accessories / Trim R/H","Cab Structure & Glass"],["Door Gas Strut L/H","Cab Structure & Glass"],["Door Gas Strut R/H","Cab Structure & Glass"],["Door Handle / Lock L/H","Cab Structure & Glass"],["Door Handle / Lock R/H","Cab Structure & Glass"],["Door Hinges L/H","Cab Structure & Glass"],["Door Hinges R/H","Cab Structure & Glass"],["Central Locking Motor (some new models)","Cab Structure & Glass"],["Windscreen","Cab Structure & Glass"],["Rear Screen","Cab Structure & Glass"],["Rear Screen Gas Strut L/H","Cab Structure & Glass"],["Rear Screen Gas Strut R/H","Cab Structure & Glass"],["Rear Screen Latch","Cab Structure & Glass"],["Mirror L/H","Cab Structure & Glass"],["Mirror R/H","Cab Structure & Glass"],["Grab Handle L/H","Cab Structure & Glass"],["Grab Handle R/H","Cab Structure & Glass"],["Sun Visor (front)","Cab Structure & Glass"],["Sun Visor (rear)","Cab Structure & Glass"],["Drivers Seat","Cab Interior & Controls"],["Seat Suspension / Base","Cab Interior & Controls"],["Seat Air Compressor","Cab Interior & Controls"],["Seatbelt","Cab Interior & Controls"],["Buddy Seat","Cab Interior & Controls"],["Floor Mat","Cab Interior & Controls"],["Cab Floor Panel","Cab Interior & Controls"],["Interior Trim Panels","Cab Interior & Controls"],["Dash Cowl (complete)","Cab Interior & Controls"],["Instrument Cluster","Cab Interior & Controls"],["Main Display / CommandCenter","Cab Interior & Controls"],["Corner Post Display","Cab Interior & Controls"],["Armrest / CommandARM (complete)","Cab Interior & Controls"],["R/H Side Console","Cab Interior & Controls"],["Field Office Box","Cab Interior & Controls"],["Pedal Assembly","Cab Interior & Controls"],["Brake Pedal L/H","Cab Interior & Controls"],["Brake Pedal R/H","Cab Interior & Controls"],["Clutch Pedal","Cab Interior & Controls"],["Foot Throttle Pedal","Cab Interior & Controls"],["Hand Throttle","Cab Interior & Controls"],["Ignition Switch","Cab Interior & Controls"],["Indicator / Light Stalk","Cab Interior & Controls"],["Switch Panels","Cab Interior & Controls"],["Head Unit / Stereo","Cab Interior & Controls"],["Speaker L/H","Cab Interior & Controls"],["Speaker R/H","Cab Interior & Controls"],["Aerial","Cab Interior & Controls"],["Interior Light Unit","Cab Interior & Controls"],["Diagnostic Port","Cab Interior & Controls"],["Power Sockets","Cab Interior & Controls"],["Ashtray","Cab Interior & Controls"],["Air Conditioning Compressor","Heating & Air Con"],["Condenser","Heating & Air Con"],["Evaporator","Heating & Air Con"],["Receiver Drier","Heating & Air Con"],["Expansion Valve","Heating & Air Con"],["A/C Pipes / Hoses","Heating & Air Con"],["Heater Matrix","Heating & Air Con"],["Heater Valve","Heating & Air Con"],["Heater Control Panel","Heating & Air Con"],["Climate Control Module","Heating & Air Con"],["Blower Motor","Heating & Air Con"],["Cab Fresh Air Filter Housing","Heating & Air Con"],["Recirculation Filter Housing","Heating & Air Con"],["Headlight L/H","Lighting"],["Headlight R/H","Lighting"],["Fog Light L/H","Lighting"],["Fog Light R/H","Lighting"],["Indicator / Repeater L/H","Lighting"],["Indicator / Repeater R/H","Lighting"],["Tail Light L/H","Lighting"],["Tail Light R/H","Lighting"],["Number Plate Light","Lighting"],["Side Marker Light L/H","Lighting"],["Side Marker Light R/H","Lighting"],["Front Roof Work Light L/H","Lighting"],["Front Roof Work Light R/H","Lighting"],["Rear Roof Work Light L/H","Lighting"],["Rear Roof Work Light R/H","Lighting"],["Grille / Hood Work Light L/H","Lighting"],["Grille / Hood Work Light R/H","Lighting"],["Fender Work Light L/H","Lighting"],["Fender Work Light R/H","Lighting"],["Handrail Light L/H","Lighting"],["Handrail Light R/H","Lighting"],["Beacon","Lighting"],["Wiper Motor (front)","Wipers & Washers"],["Wiper Motor (rear)","Wipers & Washers"],["Wiper Arm (front)","Wipers & Washers"],["Wiper Arm (rear)","Wipers & Washers"],["Washer Bottle & Pump","Wipers & Washers"],["Battery","Electrical & Control Units"],["Battery Box / Tray","Electrical & Control Units"],["Battery Isolator Switch","Electrical & Control Units"],["Fuse Box","Electrical & Control Units"],["Body Control Module (BCM)","Electrical & Control Units"],["Horn","Electrical & Control Units"],["Reverse Alarm","Electrical & Control Units"],["Radar / Ground Speed Sensor","Electrical & Control Units"],["Wheel Speed Sensor","Electrical & Control Units"],["Wiring Loom - Engine","Electrical & Control Units"],["Wiring Loom - Interior","Electrical & Control Units"],["Wiring Loom - Chassis / Main","Electrical & Control Units"],["Wiring Loom - Cab Roof","Electrical & Control Units"],["Wiring Loom - Transmission","Electrical & Control Units"],["Wiring Loom - Rear Hitch","Electrical & Control Units"],["Wiring Loom - Aftertreatment","Electrical & Control Units"],["Wiring Loom - Front Axle / Front Linkage","Electrical & Control Units"],["StarFire GPS Receiver","Precision Ag / Guidance"],["JDLink Modem / Telematics","Precision Ag / Guidance"],["AutoTrac Steering Valve / Unit","Precision Ag / Guidance"],["Engine (complete)","Engine & Ancillaries"],["Engine Block","Engine & Ancillaries"],["Cylinder Head","Engine & Ancillaries"],["Rocker Cover","Engine & Ancillaries"],["Timing Cover","Engine & Ancillaries"],["Sump / Oil Pan","Engine & Ancillaries"],["Crankshaft","Engine & Ancillaries"],["Camshaft","Engine & Ancillaries"],["Pistons & Con Rods (set)","Engine & Ancillaries"],["Crankshaft Pulley / Damper","Engine & Ancillaries"],["Flywheel","Engine & Ancillaries"],["Oil Pump","Engine & Ancillaries"],["Oil Filter Housing","Engine & Ancillaries"],["Oil Cooler (Engine)","Engine & Ancillaries"],["Water Pump","Engine & Ancillaries"],["Thermostat Housing","Engine & Ancillaries"],["Turbocharger","Engine & Ancillaries"],["Inlet Manifold","Engine & Ancillaries"],["Exhaust Manifold","Engine & Ancillaries"],["EGR Valve","Engine & Ancillaries"],["EGR Cooler","Engine & Ancillaries"],["Intake Air Heater / Grid Heater","Engine & Ancillaries"],["Air Cleaner Housing (complete)","Engine & Ancillaries"],["Air Pre-cleaner","Engine & Ancillaries"],["Air Intake Pipes / Hoses","Engine & Ancillaries"],["Crankcase Breather","Engine & Ancillaries"],["Belt Tensioner","Engine & Ancillaries"],["Alternator","Engine & Ancillaries"],["Starter Motor","Engine & Ancillaries"],["Air Brake Compressor","Engine & Ancillaries"],["Engine ECU","Engine & Ancillaries"],["Engine Sensors (set)","Engine & Ancillaries"],["Engine Mount L/H","Engine & Ancillaries"],["Engine Mount R/H","Engine & Ancillaries"],["Fuel Tank","Fuel System"],["Fuel Tank Cap","Fuel System"],["Fuel Level Sender","Fuel System"],["Auxiliary Fuel Tank","Fuel System"],["Fuel Pump","Fuel System"],["Fuel Lift Pump / Transfer Pump","Fuel System"],["Fuel Filter Housing","Fuel System"],["Water Separator","Fuel System"],["Fuel Cooler","Fuel System"],["Fuel Rail","Fuel System"],["Injector Set","Fuel System"],["Radiator","Cooling Package"],["Radiator Fan Assembly","Cooling Package"],["Fan Drive / Viscous Coupling","Cooling Package"],["Radiator Shroud","Cooling Package"],["Radiator Hoses","Cooling Package"],["Intercooler","Cooling Package"],["Intercooler Pipes","Cooling Package"],["Expansion Tank","Cooling Package"],["Hydraulic Oil Cooler","Cooling Package"],["Transmission Oil Cooler","Cooling Package"],["Cooling Package Frame","Cooling Package"],["Exhaust Box / Silencer","Exhaust & Aftertreatment"],["DOC (Diesel Oxidation Catalyst)","Exhaust & Aftertreatment"],["DPF","Exhaust & Aftertreatment"],["SCR Catalyst","Exhaust & Aftertreatment"],["Exhaust Stack / Tailpipe","Exhaust & Aftertreatment"],["Exhaust Guard / Heat Shield","Exhaust & Aftertreatment"],["AdBlue / DEF Tank","Exhaust & Aftertreatment"],["AdBlue / DEF Pump","Exhaust & Aftertreatment"],["AdBlue / DEF Dosing Injector","Exhaust & Aftertreatment"],["AdBlue / DEF Lines (heated)","Exhaust & Aftertreatment"],["NOx Sensor (inlet)","Exhaust & Aftertreatment"],["NOx Sensor (outlet)","Exhaust & Aftertreatment"],["Exhaust Temperature Sensors","Exhaust & Aftertreatment"],["DPF Pressure Sensor","Exhaust & Aftertreatment"],["Aftertreatment Control Unit","Exhaust & Aftertreatment"],["Gearbox / Transmission","Transmission, Drive & Brakes"],["Transmission Control Unit (TCU)","Transmission, Drive & Brakes"],["Transmission Control Valve / Solenoid Block","Transmission, Drive & Brakes"],["Transmission Filter Housing","Transmission, Drive & Brakes"],["Transmission Charge Pump","Transmission, Drive & Brakes"],["Gear Selector / Linkage","Transmission, Drive & Brakes"],["Power Reverser / Shuttle Lever","Transmission, Drive & Brakes"],["Creeper Unit","Transmission, Drive & Brakes"],["Driveshaft","Transmission, Drive & Brakes"],["Propshaft","Transmission, Drive & Brakes"],["Clutch","Transmission, Drive & Brakes"],["Differential","Transmission, Drive & Brakes"],["Differential Lock","Transmission, Drive & Brakes"],["Rear Axle / Beam","Transmission, Drive & Brakes"],["Rear Axle Housing L/H","Transmission, Drive & Brakes"],["Rear Axle Housing R/H","Transmission, Drive & Brakes"],["Rear Axle Shaft L/H","Transmission, Drive & Brakes"],["Rear Axle Shaft R/H","Transmission, Drive & Brakes"],["Rear Final Drive L/H","Transmission, Drive & Brakes"],["Rear Final Drive R/H","Transmission, Drive & Brakes"],["Rear Hub L/H","Transmission, Drive & Brakes"],["Rear Hub R/H","Transmission, Drive & Brakes"],["Brake Disc / Wet Brake Pack L/H","Transmission, Drive & Brakes"],["Brake Disc / Wet Brake Pack R/H","Transmission, Drive & Brakes"],["Brake Valve","Transmission, Drive & Brakes"],["Brake Master Cylinder","Transmission, Drive & Brakes"],["Handbrake / Park Brake / Park Lock","Transmission, Drive & Brakes"],["ABS Pump / Module","Transmission, Drive & Brakes"],["Front Axle (complete)","Front Axle & Steering"],["Front Axle Housing / Beam","Front Axle & Steering"],["Front Differential","Front Axle & Steering"],["Front Final Drive / Planetary Hub L/H","Front Axle & Steering"],["Front Final Drive / Planetary Hub R/H","Front Axle & Steering"],["Front Axle Shaft L/H","Front Axle & Steering"],["Front Axle Shaft R/H","Front Axle & Steering"],["Front Hub / Knuckle L/H","Front Axle & Steering"],["Front Hub / Knuckle R/H","Front Axle & Steering"],["Front Axle Pivot Pin / Bushes","Front Axle & Steering"],["TLS (Triple Link Suspension)","Front Axle & Steering"],["Front Axle Suspension Cylinder(s)","Front Axle & Steering"],["Suspension Accumulator(s)","Front Axle & Steering"],["Front Axle Support / Front Frame","Front Axle & Steering"],["Frame Rail L/H","Front Axle & Steering"],["Frame Rail R/H","Front Axle & Steering"],["Steering Wheel","Front Axle & Steering"],["Steering Column","Front Axle & Steering"],["Steering Valve / Orbitrol","Front Axle & Steering"],["Steering Cylinder L/H","Front Axle & Steering"],["Steering Cylinder R/H","Front Axle & Steering"],["Track Rod End L/H","Front Axle & Steering"],["Track Rod End R/H","Front Axle & Steering"],["Steering Angle Sensor","Front Axle & Steering"],["Steering Rack","Front Axle & Steering"],["Power Steering Pump","Front Axle & Steering"],["Hydraulic Pump","Hydraulics"],["Hydraulic Oil Tank / Reservoir","Hydraulics"],["Hydraulic Filter Housing","Hydraulics"],["Priority Valve","Hydraulics"],["Hydraulic Control Valve Block","Hydraulics"],["SCV / Rear Remote Valves","Hydraulics"],["SCV Quick Couplers","Hydraulics"],["Power Beyond Couplers","Hydraulics"],["Hitch Control Unit","Hydraulics"],["Mid-Mount Valve","Hydraulics"],["Loader Joystick","Hydraulics"],["Loader Mounting Bracket L/H","Hydraulics"],["Loader Mounting Bracket R/H","Hydraulics"],["Rockshaft","Rear Linkage & Towing"],["Lift Arm L/H","Rear Linkage & Towing"],["Lift Arm R/H","Rear Linkage & Towing"],["Lift Assist Cylinder L/H","Rear Linkage & Towing"],["Lift Assist Cylinder R/H","Rear Linkage & Towing"],["Drop Arm L/H","Rear Linkage & Towing"],["Drop Arm R/H","Rear Linkage & Towing"],["Draft Arm L/H","Rear Linkage & Towing"],["Draft Arm R/H","Rear Linkage & Towing"],["Lower Link Hook / Quick Hitch End L/H","Rear Linkage & Towing"],["Lower Link Hook / Quick Hitch End R/H","Rear Linkage & Towing"],["Top Link","Rear Linkage & Towing"],["Top Link Bracket","Rear Linkage & Towing"],["Stabiliser / Sway Link L/H","Rear Linkage & Towing"],["Stabiliser / Sway Link R/H","Rear Linkage & Towing"],["Draft Sensing Pin L/H","Rear Linkage & Towing"],["Draft Sensing Pin R/H","Rear Linkage & Towing"],["Hitch Position Sensor","Rear Linkage & Towing"],["Fender Hitch Control Switch L/H","Rear Linkage & Towing"],["Fender Hitch Control Switch R/H","Rear Linkage & Towing"],["Pickup Hitch","Rear Linkage & Towing"],["Drawbar","Rear Linkage & Towing"],["Drawbar Support Frame","Rear Linkage & Towing"],["Clevis / Auto Hitch","Rear Linkage & Towing"],["Trailer Brake Valve (hydraulic)","Rear Linkage & Towing"],["Trailer Air Brake Valve","Rear Linkage & Towing"],["Air Tank / Reservoir","Rear Linkage & Towing"],["Air Dryer","Rear Linkage & Towing"],["Trailer Air Couplings","Rear Linkage & Towing"],["7-Pin Trailer Socket","Rear Linkage & Towing"],["ISOBUS Socket","Rear Linkage & Towing"],["PTO (rear)","PTO & Front Linkage"],["PTO (front)","PTO & Front Linkage"],["PTO Clutch","PTO & Front Linkage"],["PTO Stub Shaft(s)","PTO & Front Linkage"],["PTO Guard (rear)","PTO & Front Linkage"],["PTO Guard (front)","PTO & Front Linkage"],["PTO Control Switches","PTO & Front Linkage"],["Front Linkage Frame (complete)","PTO & Front Linkage"],["Front Linkage Arm L/H","PTO & Front Linkage"],["Front Linkage Arm R/H","PTO & Front Linkage"],["Front Linkage Cylinder L/H","PTO & Front Linkage"],["Front Linkage Cylinder R/H","PTO & Front Linkage"],["Front Top Link","PTO & Front Linkage"],["Front Tow Pin / Tow Eye","PTO & Front Linkage"],["Front Wheel L/H","Wheels, Tyres & Weights"],["Front Wheel R/H","Wheels, Tyres & Weights"],["Front Tyre L/H","Wheels, Tyres & Weights"],["Front Tyre R/H","Wheels, Tyres & Weights"],["Rear Wheel L/H","Wheels, Tyres & Weights"],["Rear Wheel R/H","Wheels, Tyres & Weights"],["Rear Wheel Centre L/H","Wheels, Tyres & Weights"],["Rear Wheel Centre R/H","Wheels, Tyres & Weights"],["Rear Tyre L/H","Wheels, Tyres & Weights"],["Rear Tyre R/H","Wheels, Tyres & Weights"],["Dual Wheel L/H","Wheels, Tyres & Weights"],["Dual Wheel R/H","Wheels, Tyres & Weights"],["Wheel Weights L/H","Wheels, Tyres & Weights"],["Wheel Weights R/H","Wheels, Tyres & Weights"],["Front Weights","Wheels, Tyres & Weights"],["Front Weight Frame / Bracket","Wheels, Tyres & Weights"]];
+const GRADES = {A:"As new / minimal wear",B:"Good used, normal wear, fully serviceable",C:"Usable, visible wear or damage",D:"Scrap"};
+const LOCATIONS = ["Front","Front L/H side","Front R/H side","Rear","Rear L/H side","Rear R/H side","Left side","Right side","Engine Bay","Interior","Underside","Roof","Other"];
+const DETAIL_FIELDS = [
+  ["jobNo","Job / Stock Number"],["reg","Registration"],["vin","Serial / VIN / ID Number"],["make","Make"],["model","Model"],
+  ["trim","Derivative / Trim"],["year","Year"],["engineCode","Engine Code"],["engineSize","Engine Size"],["fuel","Fuel Type"],
+  ["transmission","Transmission"],["body","Body Style"],["colour","Colour"],["paintCode","Paint Code"],["hours","Mileage/Hours"],
+  ["acquired","Date Acquired"],["price","Purchase Price"],["vendor","Source / Vendor"],["tech","Assigned Technician"],
+  ["start","Dismantle Start Date"],["complete","Dismantle Complete Date"],["conditionNotes","Vehicle/Asset Condition Notes"]];
+const ASSEMBLIES = ["Engine","Front axle","Back end / rear axle","Transmission / gearbox","Cab","Hydraulics","Front linkage / PTO","Loader","Other"];
+const ASSET_TYPES = {
+  vehicle:{label:"Full vehicle",hint:"A whole tractor or vehicle",fields:[["make","Make"],["model","Model"],["trim","Derivative / trim"],["year","Year"],["vin","Serial / VIN / ID number"],["reg","Registration"],["engineCode","Engine code"],["engineSize","Engine size"],["fuel","Fuel type"],["transmission","Transmission"],["body","Body style"],["colour","Colour"],["paintCode","Paint code"],["hours","Hours on the clock"]]},
+  part:{label:"Part of a vehicle",hint:"Axle, back end, engine, cab and so on",fields:[["assembly","What is it?",ASSEMBLIES],["make","Came off: make"],["model","Came off: model"],["year","Came off: year"],["assemblyMake","Assembly manufacturer"],["assemblyModel","Assembly model / type"],["vin","Assembly serial number"],["assemblyPartNo","Assembly part number"],["engineCode","Engine code (if it has one)"],["hours","Hours (if known)"]]},
+  generator:{label:"Generator",hint:"Generator set, engine and alternator",fields:[["make","Make"],["model","Model"],["year","Year"],["vin","Serial number"],["kva","Rating (kVA)"],["phase","Phase",["Single phase","Three phase"]],["voltage","Voltage"],["engineMake","Engine make / model"],["engineCode","Engine code"],["alternator","Alternator make / model"],["fuel","Fuel type"],["hours","Running hours"],["colour","Colour"]]}
+};
+const assetType = j => ASSET_TYPES[j.details.assetType]?j.details.assetType:"vehicle";
+function assetName(j){const d=j.details,t=assetType(j);let n;
+  if(t==="part") n=[d.make,d.model,d.assembly&&d.assembly.toLowerCase()].filter(Boolean).join(" ")||[d.assemblyMake,d.assemblyModel].filter(Boolean).join(" ");
+  else if(t==="generator") n=[d.make,d.model,d.kva&&d.kva+"kVA","generator"].filter(Boolean).join(" ");
+  else n=[d.year,d.make,d.model].filter(Boolean).join(" ");
+  if(t==="part"&&n&&d.assembly&&!n.toLowerCase().includes(d.assembly.toLowerCase())) n+=" "+d.assembly.toLowerCase();
+  return n||d.jobNo;}
+const OBS_PROMPTS = ["Previous repair","Filler","Colour mismatch","Seized bolts","Sheared bolts","Corrosion","Broken tab","Wear only visible once off","Non-original part","Cracked","Leaking"];
+const PHOTO_SHOTS = ["Overall","Part number / label","Any damage","Connectors / mounting points"];
+const MAX_PHOTOS = 8;
+
+/* ---------- storage: IndexedDB with in-memory fallback ---------- */
+const mem = {jobs:new Map(), photos:new Map(), kv:new Map()};
+let idb = null;
+function openDB(){
+  return new Promise(res=>{
+    try{
+      const r = indexedDB.open("dismantle-log",1);
+      r.onupgradeneeded = ()=>{const d=r.result;["jobs","photos","kv"].forEach(s=>{if(!d.objectStoreNames.contains(s))d.createObjectStore(s)})};
+      r.onsuccess = ()=>res(r.result); r.onerror = ()=>res(null); r.onblocked=()=>res(null);
+    }catch(e){res(null)}
+  });
+}
+function tx(store,mode,fn){
+  if(!idb) return Promise.resolve(fn(null,store));
+  return new Promise((res,rej)=>{
+    try{const t=idb.transaction(store,mode);const s=t.objectStore(store);const out=fn(s);
+      t.oncomplete=()=>res(out&&out.result!==undefined?out.result:out);t.onerror=()=>rej(t.error);}catch(e){rej(e)}
+  });
+}
+const db = {
+  async put(store,key,val){ if(!idb){mem[store].set(key,val);return} await tx(store,"readwrite",s=>s.put(val,key)); },
+  async get(store,key){ if(!idb) return mem[store].get(key); return tx(store,"readonly",s=>s.get(key)); },
+  async del(store,key){ if(!idb){mem[store].delete(key);return} await tx(store,"readwrite",s=>s.delete(key)); },
+  async all(store){ if(!idb) return [...mem[store].values()]; return tx(store,"readonly",s=>s.getAll()); }
+};
+
+/* ---------- state ---------- */
+const S = {view:"home", jobs:[], job:null, partUid:null, step:0, filter:"todo", settings:{techs:[],pin:"0000",current:null}, modal:null, thumbs:new Map(), timerStart:null};
+const $app = document.getElementById("app");
+const esc = s => String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const uid = () => Math.random().toString(36).slice(2,10)+Date.now().toString(36).slice(-4);
+const today = () => new Date().toISOString().slice(0,10);
+const pad3 = n => String(n).padStart(3,"0");
+
+async function saveJob(job){ job.updated = Date.now(); await db.put("jobs",job.id,job); }
+async function saveSettings(){ await db.put("kv","settings",S.settings); }
+function toast(msg){ document.querySelectorAll(".toast").forEach(x=>x.remove()); const t=document.createElement("div");t.className="toast";t.textContent=msg;document.body.appendChild(t);setTimeout(()=>t.remove(),2600); }
+
+function partState(p){
+  if(p.status==="pending") return ["Awaiting sign-off","s-pend"];
+  if(p.status==="rejected") return ["Not approved","s-np"];
+  if(p.doneAt){ if(p.answers.status==="notpresent") return ["Not present","s-np"]; if(p.answers.status==="damaged") return ["Damaged","s-dmg"]; return ["Done","s-done"]; }
+  if(p.answers && Object.keys(p.answers).length) return ["In progress","s-prog"];
+  return ["To do","s-todo"];
+}
+const isActive = p => p.status!=="pending" && p.status!=="rejected";
+function goesLive(p){ // eligible for the go-live CSV
+  if(!p.doneAt||!isActive(p)) return false;
+  const a=p.answers;
+  if(a.status==="notpresent") return false;
+  if(a.grade==="D") return false; // scrap never goes live
+  if(a.photosToFollow || !(p.photos||[]).length) return false;
+  return true;
+}
+const needsSend = p => goesLive(p) && (!p.exportedAt || p.changedAt>p.exportedAt);
+
+/* ---------- sample job ---------- */
+function sampleJob(){
+  const d={jobNo:"SAMPLE-01",reg:"",vin:"1L06155RXXX000000",make:"John Deere",model:"6155R",trim:"AutoPowr",year:"2016",engineCode:"PowerTech PVX 6.8L",engineSize:"6.8",fuel:"Diesel",transmission:"AutoPowr IVT",body:"Cab",colour:"Green",paintCode:"",hours:"",acquired:today(),price:"",vendor:"",tech:"",start:"",complete:"",conditionNotes:""};
+  const rows=[
+    ["Bonnet / Hood","Bodywork & Chassis","Front",1,220,"High","Disconnect headlight loom at the bulkhead plug first. Two people to lift off the hinge.","13mm socket, trim tool",25,"Heavy and awkward. Don't rest it on the grille."],
+    ["Headlight L/H","Lighting","Front L/H side",1,85,"High","Release the two clips behind the bonnet frame and unplug.","Flat screwdriver",10,""],
+    ["Headlight R/H","Lighting","Front R/H side",1,85,"High","As L/H.","Flat screwdriver",10,""],
+    ["Air Conditioning Compressor","Heating & Air Con","Engine Bay",1,260,"High","System must be recovered before you open any line. Cap the ports straight away.","Ratchet set, port caps",40,"Do not vent refrigerant."],
+    ["Radiator","Cooling Package","Front",1,180,"Medium","Drain coolant into the labelled drum. Tilt the cooling pack forward first.","Drain tray, 10mm, 13mm",45,"Fins bend easily. Carry it flat."],
+    ["Drivers Seat","Cab Interior & Controls","Interior",1,320,"Medium","Unplug the seat switch and air line under the base. Four M10 bolts.","17mm socket",20,""],
+    ["Wiper Motor (front)","Wipers & Washers","Front",1,65,"Low","Remove the arm before the motor cover.","10mm, arm puller",15,""],
+    ["StarFire GPS Receiver","Precision Ag / Guidance","Roof",1,950,"High","Unbolt from the roof mount. Keep the mount with the receiver.","13mm",10,"High value. Hand straight to the office after photos."]
+  ];
+  d.assetType="vehicle";
+  const job={id:uid(),sample:true,details:d,created:Date.now(),parts:[]};
+  rows.forEach((r,i)=>job.parts.push(newPart(job,i+1,{name:r[0],category:r[1],location:r[2],qty:r[3],price:r[4],priority:r[5],instructions:r[6],tools:r[7],estMins:r[8],warnings:r[9]})));
+  return job;
+}
+function newPart(job,line,f){
+  return Object.assign({uid:uid(),line,id:line?job.details.jobNo+"-"+pad3(line):"",name:"",category:"",location:"",qty:1,notes:"",price:"",priority:"",instructions:"",tools:"",estMins:"",warnings:"",status:"active",answers:{},photos:[],timeSecs:0},f);
+}
+
+/* ---------- Excel import (office) ---------- */
+function loadSheetJS(){
+  if(window.XLSX) return Promise.resolve();
+  return new Promise((res,rej)=>{const urls=["xlsx.full.min.js","https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"];
+    const tryNext=()=>{const u=urls.shift();if(!u){rej(new Error("Couldn't load the spreadsheet reader. Connect to Wi-Fi and try again."));return}
+      const s=document.createElement("script");s.src=u;s.onload=()=>window.XLSX?res():tryNext();s.onerror=()=>{s.remove();tryNext()};document.head.appendChild(s)};
+    tryNext()});
+}
+async function importWorkbook(file){
+  await loadSheetJS();
+  const wb = XLSX.read(await file.arrayBuffer(),{type:"array",cellDates:true});
+  const det = wb.Sheets["1 Details"], pl = wb.Sheets["2 Parts List"], wo = wb.Sheets["3 Work Order"];
+  if(!det||!pl) throw new Error("This doesn't look like the Acquisition Dismantling Workflow file. It needs the '1 Details' and '2 Parts List' tabs.");
+  const cell=(ws,a)=>{const c=ws[a];if(!c||c.v==null)return"";return c.v instanceof Date?c.v.toISOString().slice(0,10):String(c.w&&typeof c.v==="number"&&!/^[\d.]+$/.test(c.w)?c.v:c.v).trim()};
+  const d={};
+  for(let r=5;r<=40;r++){const lbl=cell(det,"B"+r).toLowerCase();if(!lbl)continue;
+    const f=DETAIL_FIELDS.find(([k,l])=>lbl.startsWith(l.toLowerCase().slice(0,14)));
+    if(f&&d[f[0]]===undefined) d[f[0]]=cell(det,"C"+r);}
+  if(!d.jobNo) throw new Error("Fill in the Job / Stock Number on the '1 Details' tab first.");
+  const job={id:uid(),details:Object.assign(Object.fromEntries(DETAIL_FIELDS.map(([k])=>[k,""])),d),created:Date.now(),parts:[]};
+  const woBy={};
+  const woRow={};
+  if(wo) for(let r=7;r<=400;r++){const w={instructions:cell(wo,"G"+r),tools:cell(wo,"H"+r),estMins:cell(wo,"I"+r),warnings:cell(wo,"J"+r)};woRow[r]=w;const pid=cell(wo,"B"+r);if(pid)woBy[pid]=w}
+  for(let r=7;r<=400;r++){
+    const name=cell(pl,"C"+r); if(!name) continue;
+    if(cell(pl,"J"+r).toLowerCase()==="no") continue;
+    const line=parseInt(cell(pl,"A"+r))||(r-6);
+    const id=cell(pl,"B"+r)||(d.jobNo+"-"+pad3(line));
+    job.parts.push(newPart(job,line,Object.assign({id,name,category:cell(pl,"D"+r),location:cell(pl,"E"+r),qty:cell(pl,"F"+r)||1,notes:cell(pl,"G"+r),price:cell(pl,"H"+r),priority:cell(pl,"I"+r)},woBy[id]||woRow[r]||{})));
+  }
+  if(!job.parts.length) throw new Error("No parts found on the '2 Parts List' tab.");
+  return job;
+}
+
+/* ---------- photos ---------- */
+function resizePhoto(file){
+  return new Promise((res,rej)=>{
+    const url=URL.createObjectURL(file); const img=new Image();
+    img.onload=()=>{const max=1600;let w=img.naturalWidth,h=img.naturalHeight;const k=Math.min(1,max/Math.max(w,h));w=Math.round(w*k);h=Math.round(h*k);
+      const c=document.createElement("canvas");c.width=w;c.height=h;c.getContext("2d").drawImage(img,0,0,w,h);URL.revokeObjectURL(url);
+      c.toBlob(b=>b?res(b):rej(new Error("Couldn't process that photo.")),"image/jpeg",0.85)};
+    img.onerror=()=>{URL.revokeObjectURL(url);rej(new Error("Couldn't read that photo."))};
+    img.src=url;
+  });
+}
+async function thumbURL(key){
+  if(S.thumbs.has(key)) return S.thumbs.get(key);
+  const b=await db.get("photos",key); if(!b) return "";
+  const u=URL.createObjectURL(b); S.thumbs.set(key,u); return u;
+}
+async function fillThumbs(){
+  for(const img of $app.querySelectorAll("img[data-photo]")){ img.src = await thumbURL(img.dataset.photo); }
+}
+
+/* ---------- export: CSV + zip ---------- */
+const csvCell = v => { v=String(v??""); return /[",\n\r]/.test(v)?'"'+v.replace(/"/g,'""')+'"':v; };
+const toCSV = rows => rows.map(r=>r.map(csvCell).join(",")).join("\r\n")+"\r\n";
+const photoName = (p,i) => `${p.id}_${i+1}.jpg`;
+function autoTitle(job,p){const n=assetName(job);return [n===job.details.jobNo?"":n,p.name].filter(Boolean).join(" ")}
+function autoDesc(job,p){
+  const d=job.details,a=p.answers,out=[];
+  const t=assetType(job),from=t==="vehicle"?[d.year,d.make,d.model,d.trim].filter(Boolean).join(" "):assetName(job);
+  const asm=t==="part"&&(d.assemblyMake||d.assemblyModel)?` (${[d.assemblyMake,d.assemblyModel].filter(Boolean).join(" ")})`:"";
+  out.push(`Used ${p.name}${from&&from!==d.jobNo?` removed from a ${from}${asm}`:""}.`);
+  if(a.grade) out.push(`Condition: Grade ${a.grade}, ${GRADES[a.grade].toLowerCase()}.`);
+  if(a.obs) out.push(`Notes: ${a.obs}`);
+  if(a.damageYN==="yes"&&a.damage) out.push(`Damage: ${a.damage}`);
+  if(a.oem&&!a.oemNone) out.push(`Part number: ${a.oem}`);
+  if(a.alt) out.push(`Other markings: ${a.alt}`);
+  const donor=[d.engineCode&&`engine ${d.engineCode}`,d.vin&&`serial ${d.vin}`].filter(Boolean).join(", ");
+  if(donor) out.push(`Donor ${donor}.`);
+  return out.join("\n");
+}
+const STOCK_COLS=["sku","title","description","category","condition","price","quantity","oem_number","alt_numbers","manufacturer","donor_make","donor_model","donor_year","donor_engine_code","donor_vin","donor_reg","photo_files","bin_location"];
+function stockRow(job,p){
+  const d=job.details,a=p.answers;
+  return [p.id,p.title||autoTitle(job,p),p.description||autoDesc(job,p),p.category,a.grade?"Grade "+a.grade:"",p.finalPrice||p.price,p.qty,a.oemNone?"":a.oem,a.alt,a.maker,d.make||d.assemblyMake,d.model||d.assemblyModel,d.year,d.engineCode,d.vin,assetType(job)==="vehicle"?d.reg:"",(p.photos||[]).map((_,i)=>photoName(p,i)).join(";"),""];
+}
+const STATUS_TXT={removed:"Yes",damaged:"Damaged",notpresent:"Not Present"};
+function logRows(job){
+  const rows=[["Part ID","Part Name","Location","Removed?","Condition Grade","Technician Observations","Damage Found","OEM / Part Number","Other Marked / Cast Numbers","Manufacturer / Brand","Time Taken (mins)","Date Removed","Technician Initials","Photos","Photos to follow","Added on the job","Approved by"]];
+  job.parts.filter(isActive).forEach(p=>{const a=p.answers;rows.push([p.id,p.name,p.location,p.doneAt?STATUS_TXT[a.status]:"No",a.grade||"",a.obs||"",a.damageYN==="yes"?a.damage:(a.damageYN==="no"?"None":""),a.oemNone?"Not found":(a.oem||""),a.alt||"",a.maker||"",p.doneAt?Math.round(p.timeSecs/60):"",p.dateRemoved||"",p.initials||"",(p.photos||[]).length,a.photosToFollow?"Yes":"",p.extra?"Yes":"",p.extra?.approvedBy||""])});
+  return rows;
+}
+const CRC=(()=>{const t=new Uint32Array(256);for(let n=0;n<256;n++){let c=n;for(let k=0;k<8;k++)c=c&1?0xEDB88320^(c>>>1):c>>>1;t[n]=c>>>0}return t})();
+function crc32(u8){let c=0xFFFFFFFF;for(let i=0;i<u8.length;i++)c=CRC[(c^u8[i])&255]^(c>>>8);return(c^0xFFFFFFFF)>>>0}
+async function makeZip(files){ // files: [{name, data:Uint8Array|string|Blob}]
+  const enc=new TextEncoder(),parts=[],central=[];let off=0;
+  const now=new Date(),dt=((now.getHours()<<11)|(now.getMinutes()<<5)|(now.getSeconds()>>1)),dd=(((now.getFullYear()-1980)<<9)|((now.getMonth()+1)<<5)|now.getDate());
+  for(const f of files){
+    const data=typeof f.data==="string"?enc.encode(f.data):f.data instanceof Blob?new Uint8Array(await f.data.arrayBuffer()):f.data;
+    const name=enc.encode(f.name),crc=crc32(data);
+    const h=new DataView(new ArrayBuffer(30));h.setUint32(0,0x04034b50,true);h.setUint16(4,20,true);h.setUint16(6,0x0800,true);h.setUint16(8,0,true);h.setUint16(10,dt,true);h.setUint16(12,dd,true);h.setUint32(14,crc,true);h.setUint32(18,data.length,true);h.setUint32(22,data.length,true);h.setUint16(26,name.length,true);h.setUint16(28,0,true);
+    parts.push(new Uint8Array(h.buffer),name,data);
+    const c=new DataView(new ArrayBuffer(46));c.setUint32(0,0x02014b50,true);c.setUint16(4,20,true);c.setUint16(6,20,true);c.setUint16(8,0x0800,true);c.setUint16(10,0,true);c.setUint16(12,dt,true);c.setUint16(14,dd,true);c.setUint32(16,crc,true);c.setUint32(20,data.length,true);c.setUint32(24,data.length,true);c.setUint16(28,name.length,true);c.setUint32(42,off,true);
+    central.push(new Uint8Array(c.buffer),name);
+    off+=30+name.length+data.length;
+  }
+  const csize=central.reduce((s,u)=>s+u.length,0);
+  const e=new DataView(new ArrayBuffer(22));e.setUint32(0,0x06054b50,true);e.setUint16(8,files.length,true);e.setUint16(10,files.length,true);e.setUint32(12,csize,true);e.setUint32(16,off,true);
+  return new Blob([...parts,...central,new Uint8Array(e.buffer)],{type:"application/zip"});
+}
+async function offerFile(filename,blob){
+  try{ if(window.claude&&claude.use){ const dl=await claude.use("downloads"); if(dl){ await dl.save({filename,data:blob}); return true; } } }
+  catch(e){ if(e&&e.code==="declined"){toast("Save cancelled");return false} if(e&&e.code&&e.code!=="unavailable"&&e.code!=="not_granted"){toast("Couldn't save: "+(e.message||e.code));return false} }
+  const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download=filename;document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},4000);return true;
+}
+function stamp(){const n=new Date();return n.toISOString().slice(0,10)+"_"+String(n.getHours()).padStart(2,"0")+String(n.getMinutes()).padStart(2,"0")}
+async function exportJob(kind){
+  const job=S.job;
+  const list = kind==="new" ? job.parts.filter(needsSend) : job.parts.filter(goesLive);
+  if(kind==="new"&&!list.length){toast("Nothing new to send");return}
+  const files=[{name:`${job.details.jobNo}_stock.csv`,data:"﻿"+toCSV([STOCK_COLS,...list.map(p=>stockRow(job,p))])}];
+  if(kind==="full") files.push({name:`${job.details.jobNo}_dismantle-log.csv`,data:"﻿"+toCSV(logRows(job))});
+  const photoParts = kind==="new"?list:job.parts.filter(p=>isActive(p)&&p.id);
+  for(const p of photoParts) for(let i=0;i<(p.photos||[]).length;i++){const b=await db.get("photos",p.photos[i]);if(b)files.push({name:`photos/${photoName(p,i)}`,data:b})}
+  const zip=await makeZip(files);
+  const ok=await offerFile(`${job.details.jobNo}_${kind==="new"?"new-parts":"full-job"}_${stamp()}.zip`,zip);
+  if(ok&&kind==="new"){const t=Date.now();list.forEach(p=>p.exportedAt=t);job.lastExport=t;await saveJob(job);toast(`${list.length} part${list.length>1?"s":""} ready to upload`);render()}
+}
+
+/* ---------- wizard ---------- */
+function steps(p){
+  const s=["info","status"];
+  if(!p.answers.status||p.answers.status!=="notpresent"){s.push("grade","oem","alt","maker","obs","damage");if(p.answers.grade!=="D")s.push("photos")}
+  s.push("review"); return s;
+}
+function stepValid(p,st){
+  const a=p.answers;
+  switch(st){
+    case "status": return !!a.status;
+    case "grade": return !!a.grade;
+    case "oem": return !!(a.oemNone||(a.oem&&a.oem.trim()));
+    case "maker": return !!(a.maker&&a.maker.trim());
+    case "obs": return a.grade==="A"||!!(a.obs&&a.obs.trim());
+    case "damage": return a.damageYN==="no"||(a.damageYN==="yes"&&!!(a.damage&&a.damage.trim()));
+    case "photos": return !!a.photosToFollow||(!!a.prepped&&(p.photos||[]).length>0);
+    default: return true;
+  }
+}
+const STEP_LABEL={status:"What happened",grade:"Condition",oem:"OEM / part number",alt:"Other numbers",maker:"Manufacturer / brand",obs:"Observations",damage:"Damage",photos:"Photos"};
+function reviewValue(p,st){
+  const a=p.answers;
+  switch(st){
+    case "status": return {removed:"Removed",damaged:"Damaged",notpresent:"Not present"}[a.status];
+    case "grade": return a.grade&&`Grade ${a.grade}`;
+    case "oem": return a.oemNone?"Couldn't find one":a.oem;
+    case "alt": return a.alt||"None";
+    case "maker": return a.maker;
+    case "obs": return a.obs||(a.grade==="A"?"None (grade A)":"");
+    case "damage": return a.damageYN==="no"?"None":a.damageYN==="yes"?a.damage:"";
+    case "photos": return a.photosToFollow?"Photos to follow":(p.photos||[]).length?`${p.photos.length} photo${p.photos.length>1?"s":""}`:"";
+  }
+}
+function curPart(){return S.job.parts.find(p=>p.uid===S.partUid)}
+function stopTimer(p){ if(S.timerStart&&p){ p.timeSecs=(p.timeSecs||0)+Math.round((Date.now()-S.timerStart)/1000); S.timerStart=null; } }
+
+/* ---------- views ---------- */
+function bar(title,sub,left,right){return `<header class="bar"><div class="bar-in">${left||""}<h1>${title}</h1>${right||""}${sub?`<div class="sub">${sub}</div>`:""}</div></header>`}
+function vHome(){
+  const jobs=S.jobs.slice().sort((a,b)=>b.created-a.created);
+  return bar("Dismantle Log","",``,`<button data-act="settings">Settings</button>`)+`<main class="wrap">
+  ${jobs.length?`<section class="card"><h2>Jobs on this tablet</h2><div class="parts">${jobs.map(j=>{const act=j.parts.filter(isActive),done=act.filter(p=>p.doneAt).length;
+    return `<button class="part" data-act="open" data-id="${j.id}"><span class="stripe ${done===act.length?"s-done":"s-prog"}"></span><span class="grow"><span class="nm">${esc(assetName(j))}</span><br><span class="muted small"><span class="mono">${esc(j.details.jobNo)}</span> · ${done} of ${act.length} parts done${j.sample?" · sample":""}</span></span><span class="chip ${done===act.length?"s-done":"s-prog"}">${Math.round(done/Math.max(1,act.length)*100)}%</span></button>`}).join("")}</div></section>`
+  :`<section class="card"><h2>No jobs yet</h2><p class="muted" style="margin:0">The office loads each job from the Acquisition Dismantling Workflow spreadsheet. Once a job is on the tablet it works without Wi-Fi.</p></section>`}
+  <section class="card"><h3>Office: add a job</h3>
+    <p class="muted small" style="margin:0">Pick the filled-in <b>Acquisition Dismantling Workflow</b> file. The asset details, parts list and work order instructions come across. Parts marked "No" in "Include in Work Order?" are left out.</p>
+    <div class="row"><button class="btn primary" data-act="import">Load job from spreadsheet</button><button class="btn" data-act="sample">Try the sample job</button></div>
+  </section></main>`;
+}
+function vSettings(){
+  const st=S.settings;
+  return bar("Settings","",`<button data-act="home">Back</button>`)+`<main class="wrap">
+  <section class="card"><h2>Technicians</h2>
+    <div class="parts">${st.techs.map((t,i)=>`<div class="row card" style="padding:10px 14px"><span class="grow"><b>${esc(t.name)}</b> <span class="mono muted">${esc(t.initials)}</span></span><button class="btn danger" data-act="deltech" data-i="${i}">Remove</button></div>`).join("")||`<p class="muted" style="margin:0">No technicians added yet.</p>`}</div>
+    <div class="grid2"><label class="f">Name<input type="text" id="tname" autocomplete="off"></label><label class="f">Initials<input type="text" id="tinit" maxlength="4" autocomplete="off"></label></div>
+    <button class="btn dark" data-act="addtech">Add technician</button></section>
+  <section class="card"><h2>Manager PIN</h2><p class="muted small" style="margin:0">Needed to approve extra parts that weren't on the list. The starting PIN is 0000, so change it before the tablet goes into the workshop.</p>
+    <label class="f">New PIN<input type="password" inputmode="numeric" id="newpin" autocomplete="off"></label><button class="btn dark" data-act="setpin">Save PIN</button></section>
+  <section class="card"><h3>Storage</h3><p class="muted small" style="margin:0">${idb?"Jobs and photos are saved on this tablet as you go.":"This browser isn't letting the app save. Work will be lost if the page is closed. Export often."}</p></section></main>`;
+}
+function vJob(){
+  const j=S.job,d=j.details,act=j.parts.filter(isActive),done=act.filter(p=>p.doneAt).length,pend=j.parts.filter(p=>p.status==="pending"),toSend=j.parts.filter(needsSend).length;
+  const tech=S.settings.current;
+  const f=S.filter;
+  const list=j.parts.filter(p=>{const [,c]=partState(p);if(f==="todo")return !p.doneAt&&p.status!=="rejected";if(f==="done")return !!p.doneAt;return true});
+  const prio={High:0,Medium:1,Low:2};
+  list.sort((a,b)=>(a.status==="pending"?-1:0)-(b.status==="pending"?-1:0)||(prio[a.priority]??3)-(prio[b.priority]??3)||a.line-b.line);
+  return bar(esc(assetName(j)),`<span class="mono">${esc(d.jobNo)}</span> · ${tech?`Working: ${esc(tech.name)} (${esc(tech.initials)})`:"No technician selected"}`,`<button data-act="home">Jobs</button>`,`<button data-act="whoami">Change tech</button>`)+`<main class="wrap">
+  ${j.sample?`<div class="sample">This is a sample job for trying the app. Nothing here is real stock.</div>`:""}
+  <section class="card"><div class="stat"><span><b>${done}/${act.length}</b><span class="muted small">parts done</span></span><span><b>${toSend}</b><span class="muted small">ready to send</span></span>${pend.length?`<span><b style="color:var(--bad)">${pend.length}</b><span class="muted small">awaiting sign-off</span></span>`:""}</div>
+    <div class="progress"><i style="width:${Math.round(done/Math.max(1,act.length)*100)}%"></i></div>
+    <div class="row"><button class="btn" data-act="machine">Asset details</button><button class="btn" data-act="extra">Request extra part</button><button class="btn primary grow" data-act="exportmenu">Send parts${toSend?` (${toSend})`:""}</button></div></section>
+  <div class="tabs" role="group" aria-label="Show parts">${[["todo","To do"],["done","Done"],["all","All"]].map(([k,l])=>`<button data-act="filter" data-f="${k}" aria-pressed="${f===k}">${l}</button>`).join("")}</div>
+  <div class="parts">${list.map(p=>{const [lbl,c]=partState(p);return `<button class="part" data-act="part" data-uid="${p.uid}"><span class="stripe ${c}"></span><span class="grow"><span class="nm">${esc(p.name)}</span><br><span class="muted small">${p.id?`<span class="mono">${esc(p.id)}</span> · `:""}${esc(p.location)}${p.priority?` · ${esc(p.priority)} priority`:""}${p.exportedAt&&!needsSend(p)?" · sent":""}</span></span><span class="chip ${c}">${lbl}</span></button>`}).join("")||`<p class="muted">Nothing here.</p>`}</div></main>`;
+}
+function vMachine(){
+  const j=S.job,d=j.details,t=assetType(j),T=ASSET_TYPES[t];
+  const field=([k,l,opts])=>opts?`<label class="f">${esc(l)}<select data-detail="${k}"><option value=""></option>${opts.map(o=>`<option ${d[k]===o?"selected":""}>${esc(o)}</option>`).join("")}</select></label>`
+    :`<label class="f">${esc(l)}<input type="text" data-detail="${k}" value="${esc(d[k])}" ${/hours|year|kva|voltage/i.test(k)?'inputmode="decimal"':""} autocomplete="off"></label>`;
+  return bar("Asset details",`<span class="mono">${esc(d.jobNo)}</span>`,`<button data-act="backjob">Back</button>`)+`<main class="wrap">
+  <section class="card"><h3>What are we dismantling?</h3><div class="choices c3">${Object.entries(ASSET_TYPES).map(([k,v])=>`<button class="choice" data-act="settype" data-t="${k}" aria-pressed="${t===k}"><b>${v.label}</b><span>${v.hint}</span></button>`).join("")}</div></section>
+  <section class="card"><h3>${esc(T.label)}</h3><p class="muted small" style="margin:0">Fill in what applies and leave the rest blank. Check plates and numbers against what's in front of you.</p>
+    <div class="grid2">${T.fields.map(field).join("")}</div>
+    <label class="f">Condition when it arrived<textarea data-detail="conditionNotes">${esc(d.conditionNotes)}</textarea></label>
+    <button class="btn primary" data-act="savemachine">Save</button></section></main>`;
+}
+function mAssetType(){return `<div class="card"><h2>What are we dismantling?</h2><p class="muted small" style="margin:0">This picks which details the asset page asks for. You can change it later.</p><div class="choices">${Object.entries(ASSET_TYPES).map(([k,v])=>`<button class="choice" data-act="pickType" data-t="${k}"><b>${v.label}</b><span>${v.hint}</span></button>`).join("")}</div></div>`}
+function vWizard(){
+  const p=curPart(),ss=steps(p),st=ss[S.step],a=p.answers;
+  const qs=ss.filter(s=>!["info","review"].includes(s));const qi=qs.indexOf(st);
+  let body="";
+  switch(st){
+    case "info": body=`<div class="stepno">${p.id?esc(p.id):"New part"} · ${esc(p.category)}</div><h2 class="q">${esc(p.name)}</h2>
+      <div class="info"><dl><dt>Location</dt><dd>${esc(p.location)||"—"}</dd><dt>Qty</dt><dd>${esc(p.qty)}</dd>${p.priority?`<dt>Priority</dt><dd>${esc(p.priority)}</dd>`:""}${p.estMins?`<dt>Est. time</dt><dd>${esc(p.estMins)} mins</dd>`:""}${p.tools?`<dt>Tools</dt><dd>${esc(p.tools)}</dd>`:""}</dl></div>
+      ${p.instructions?`<div><h3>How to remove it</h3><p style="margin:.3em 0 0;white-space:pre-wrap">${esc(p.instructions)}</p></div>`:""}
+      ${p.warnings?`<div class="warnbox"><b>Take care:</b> ${esc(p.warnings)}</div>`:""}
+      ${p.notes?`<p class="muted small" style="margin:0">Office note: ${esc(p.notes)}</p>`:""}
+      ${p.extra?`<p class="muted small" style="margin:0">Added on the job: ${esc(p.extra.reason)}. Approved by ${esc(p.extra.approvedBy)}.</p>`:""}`;break;
+    case "status": body=`<h2 class="q">What happened to this part?</h2><div class="choices c3">${[["removed","Removed","Off the asset and stocked"],["damaged","Damaged","Broke on removal or was already broken"],["notpresent","Not present","Not on this asset"]].map(([k,l,s])=>`<button class="choice" data-act="ans" data-k="status" data-v="${k}" aria-pressed="${a.status===k}"><b>${l}</b><span>${s}</span></button>`).join("")}</div>`;break;
+    case "grade": body=`<h2 class="q">What condition is it in?</h2><p class="muted" style="margin:0">Grade what you see, not what you expect.</p><div class="choices c4">${Object.entries(GRADES).map(([g,m])=>`<button class="choice" data-act="ans" data-k="grade" data-v="${g}" aria-pressed="${a.grade===g}"><b>${g}</b><span>${m}</span></button>`).join("")}</div>`;break;
+    case "oem": body=`<h2 class="q">OEM / part number</h2><input type="text" data-ans="oem" value="${esc(a.oem)}" autocomplete="off" autocapitalize="characters" placeholder="As stamped or on the label" ${a.oemNone?"disabled":""}>
+      <label class="check"><input type="checkbox" data-ans-check="oemNone" ${a.oemNone?"checked":""}>Can't find one</label>`;break;
+    case "alt": body=`<h2 class="q">Any other marked or cast numbers?</h2><input type="text" data-ans="alt" value="${esc(a.alt)}" autocomplete="off" autocapitalize="characters" placeholder="Leave blank if none">`;break;
+    case "maker": {const sug=[...new Set([S.job.details.make,S.job.details.assemblyMake,...S.job.parts.map(x=>x.answers.maker)].filter(Boolean))];
+      body=`<h2 class="q">Manufacturer / brand</h2><input type="text" data-ans="maker" value="${esc(a.maker)}" autocomplete="off"><div class="chips">${sug.map(s=>`<button data-act="setans" data-k="maker" data-v="${esc(s)}">${esc(s)}</button>`).join("")}</div>`;break;}
+    case "obs": body=`<h2 class="q">What did you find that a photo won't show?</h2><p class="muted" style="margin:0">${a.grade==="A"?"Optional for grade A. ":""}Tap the microphone on the keyboard to talk instead of typing.</p>
+      <textarea data-ans="obs" placeholder="Previous repairs, seized bolts, corrosion, broken tabs, wear…">${esc(a.obs)}</textarea><div class="chips">${OBS_PROMPTS.map(s=>`<button data-act="addobs" data-v="${esc(s)}">+ ${esc(s)}</button>`).join("")}</div>`;break;
+    case "damage": body=`<h2 class="q">Any damage?</h2>${a.status==="damaged"||a.grade==="C"||a.grade==="D"?`<p class="muted" style="margin:0">You marked this ${a.status==="damaged"?"as damaged":"grade "+a.grade}, so describe the damage.</p>`:""}
+      <div class="choices c3">${[["no","No damage"],["yes","Yes, there's damage"]].map(([k,l])=>`<button class="choice" data-act="ans" data-k="damageYN" data-v="${k}" aria-pressed="${a.damageYN===k}"><b>${l}</b></button>`).join("")}</div>
+      ${a.damageYN==="yes"?`<textarea data-ans="damage" placeholder="Where, how bad, does it affect use?">${esc(a.damage)}</textarea>`:""}`;break;
+    case "photos": {const n=(p.photos||[]).length;
+      body=`<h2 class="q">Photos</h2>
+      <label class="check"><input type="checkbox" data-ans-check="prepped" ${a.prepped?"checked":""}>Part cleaned, waxed and ready for stock</label>
+      ${a.prepped&&!a.photosToFollow?`<p class="muted small" style="margin:0">Suggested: ${PHOTO_SHOTS.join(", ")}. ${n} of ${MAX_PHOTOS} taken.</p>
+        <div class="thumbs">${p.photos.map((k,i)=>`<div class="thumb"><img data-photo="${k}" alt="Photo ${i+1}"><span class="lbl">${esc(photoName(p,i))}</span><button data-act="delphoto" data-i="${i}" aria-label="Delete photo ${i+1}">×</button></div>`).join("")}</div>
+        <button class="btn dark block" data-act="shoot" ${n>=MAX_PHOTOS?"disabled":""}>${n?"Take another photo":"Take photo"}</button>`:a.photosToFollow?"":`<p class="muted" style="margin:0">Tick this once the part is prepped. The camera opens after that.</p>`}
+      <label class="check"><input type="checkbox" data-ans-check="photosToFollow" ${a.photosToFollow?"checked":""}>Photos to follow (part won't go live until they're added)</label>`;break;}
+    case "review": {const secs=(p.timeSecs||0)+(S.timerStart?Math.round((Date.now()-S.timerStart)/1000):0);
+      body=`<h2 class="q">Check and finish</h2><p class="muted" style="margin:0">Tap any line to change it.</p><div class="review">${ss.filter(s=>!["info","review"].includes(s)).map(s=>{const v=reviewValue(p,s);const ok=stepValid(p,s);return `<button data-act="goto" data-s="${ss.indexOf(s)}"><span>${STEP_LABEL[s]}</span><span class="${ok?"":"missing"}">${ok?esc(v):"Needs an answer"}</span></button>`}).join("")}</div>
+      <label class="f">Time taken (minutes)<input type="number" inputmode="numeric" id="mins" min="0" value="${Math.max(1,Math.round(secs/60))}"></label>`;break;}
+  }
+  const valid=stepValid(p,st), allValid=ss.every(s=>stepValid(p,s));
+  const next = st==="review" ? `<button class="btn primary" data-act="finish" ${allValid?"":"disabled"}>${p.doneAt?"Save changes":"Done"}</button>` : `<button class="btn primary" data-act="next" ${valid?"":"disabled"}>${st==="info"?"Start":"Next"}</button>`;
+  return bar(esc(p.name),`${p.id?`<span class="mono">${esc(p.id)}</span> · `:""}${qi>=0?`Question ${qi+1} of ${qs.length}`:st==="review"?"Review":"Work order"}`,`<button data-act="closepart">Parts</button>`)+`<main class="wrap"><section class="card">${body}</section></main>
+  <nav class="navbar"><div class="in"><button class="btn" data-act="back" ${S.step===0?"disabled":""}>Back</button>${next}</div></nav>`;
+}
+function vListings(){
+  const j=S.job,list=j.parts.filter(goesLive);
+  return bar("Listings",`<span class="mono">${esc(j.details.jobNo)}</span> · office check before upload`,`<button data-act="backjob">Back</button>`)+`<main class="wrap">
+  <p class="muted" style="margin:0">Titles and descriptions are drafted from the tech's answers. Edit anything here; changes are saved as you type and go out with the next send.</p>
+  ${list.map(p=>`<section class="card"><div class="row"><span class="grow"><b>${esc(p.name)}</b><br><span class="mono muted small">${esc(p.id)}</span></span><span class="chip ${needsSend(p)?"s-prog":"s-done"}">${needsSend(p)?"To send":"Sent"}</span></div>
+    <label class="f">Title<input type="text" data-list="title" data-uid="${p.uid}" value="${esc(p.title||autoTitle(j,p))}"></label>
+    <label class="f">Description<textarea data-list="description" data-uid="${p.uid}">${esc(p.description||autoDesc(j,p))}</textarea></label>
+    <div class="grid2"><label class="f">Price (£)<input type="number" inputmode="decimal" data-list="finalPrice" data-uid="${p.uid}" value="${esc(p.finalPrice||p.price)}"></label></div>
+    <button class="btn" data-act="redraft" data-uid="${p.uid}">Redraft from tech's answers</button></section>`).join("")||`<section class="card"><p class="muted" style="margin:0">No parts are ready yet. A part is ready once it's done, has photos, and isn't Not present or Damaged grade D.</p></section>`}</main>`;
+}
+
+/* ---------- modals ---------- */
+function mWho(){return `<div class="card"><h2>Who's working?</h2>${S.settings.techs.length?`<div class="choices c3">${S.settings.techs.map((t,i)=>`<button class="choice" data-act="pickme" data-i="${i}"><b>${esc(t.initials)}</b><span>${esc(t.name)}</span></button>`).join("")}</div>`:`<p class="muted" style="margin:0">Add your name once and the app fills in your initials on every part.</p>`}
+  <div class="grid2"><label class="f">Name<input type="text" id="wname" autocomplete="off"></label><label class="f">Initials<input type="text" id="winit" maxlength="4" autocomplete="off"></label></div><button class="btn dark" data-act="addme">Add me</button></div>`}
+function mExport(){const n=S.job.parts.filter(needsSend).length,held=S.job.parts.filter(p=>p.doneAt&&p.answers.photosToFollow).length;
+  return `<div class="card"><h2>Send parts</h2>
+  <button class="btn primary block" data-act="exp-new" ${n?"":"disabled"}>Send ${n} new part${n===1?"":"s"}</button><p class="muted small" style="margin:0">Finished parts not sent yet, plus any changed since. One zip: stock CSV and photos, ready to upload.${held?` ${held} part${held>1?"s are":" is"} held back waiting for photos.`:""}</p>
+  <button class="btn block" data-act="exp-full">Download full job</button><p class="muted small" style="margin:0">Every part including Damaged and Not present, as a dismantle log CSV for your records, plus the stock CSV and all photos.</p>
+  <button class="btn block" data-act="listings">Office: check titles and prices</button>
+  <button class="btn block" data-act="close">Close</button></div>`}
+function mExtra(){return `<div class="card"><h2>Request extra part</h2><p class="muted small" style="margin:0">For saleable parts that aren't on the list. A manager signs it off before you start.</p>
+  <label class="f">Part<input type="search" id="xname" list="libnames" autocomplete="off" placeholder="Start typing, e.g. Mirror"></label><datalist id="libnames">${LIB.map(([n])=>`<option value="${esc(n)}">`).join("")}</datalist>
+  <label class="f">Location<select id="xloc">${LOCATIONS.map(l=>`<option>${l}</option>`).join("")}</select></label>
+  <label class="f">Why is it worth pulling?<textarea id="xwhy" style="min-height:90px"></textarea></label>
+  <div class="row"><button class="btn" data-act="close">Cancel</button><button class="btn primary grow" data-act="xsave">Request sign-off</button></div></div>`}
+function mApprove(p){return `<div class="card"><h2>Sign off extra part</h2><div class="info"><dl><dt>Part</dt><dd>${esc(p.name)}</dd><dt>Location</dt><dd>${esc(p.location)}</dd><dt>Requested by</dt><dd>${esc(p.extra.requestedBy)}</dd><dt>Reason</dt><dd>${esc(p.extra.reason)}</dd></dl></div>
+  <label class="f">Manager name<input type="text" id="mname" autocomplete="off"></label><label class="f">Manager PIN<input type="password" inputmode="numeric" id="mpin" autocomplete="off"></label>
+  <p class="missing small" id="merr" hidden>That PIN isn't right.</p>
+  <div class="row"><button class="btn danger" data-act="xreject" data-uid="${p.uid}">Reject</button><button class="btn" data-act="close">Not now</button><button class="btn primary grow" data-act="xapprove" data-uid="${p.uid}">Approve</button></div></div>`}
+
+function render(){
+  const v=S.view;
+  $app.innerHTML = v==="home"?vHome():v==="settings"?vSettings():v==="job"?vJob():v==="machine"?vMachine():v==="wizard"?vWizard():v==="listings"?vListings():"";
+  if(S.modal){const m=document.createElement("div");m.className="modal";m.innerHTML=S.modal;$app.appendChild(m)}
+  fillThumbs();
+}
+function afterWho(){if(S.job&&!S.job.details.assetType)modal(mAssetType());else closeModal()}
+function modal(html){S.modal=html;render()}
+function closeModal(){S.modal=null;render()}
+
+/* ---------- actions ---------- */
+async function openJob(id){S.job=S.jobs.find(j=>j.id===id);S.view="job";S.filter="todo";S.modal=S.settings.current?null:mWho();render()}
+function persistPart(p){p.changedAt=Date.now();return saveJob(S.job).catch(()=>toast("Couldn't save on this tablet. Export soon."))}
+const ACT = {
+  home(){S.view="home";S.job=null;render()},
+  settings(){S.view="settings";render()},
+  async addtech(){const n=document.getElementById("tname").value.trim(),i=document.getElementById("tinit").value.trim().toUpperCase();if(!n||!i){toast("Enter a name and initials");return}S.settings.techs.push({name:n,initials:i});await saveSettings();render()},
+  async deltech(el){S.settings.techs.splice(+el.dataset.i,1);await saveSettings();render()},
+  async setpin(){const v=document.getElementById("newpin").value.trim();if(!/^\d{4,8}$/.test(v)){toast("Use 4 to 8 digits");return}S.settings.pin=v;await saveSettings();toast("PIN saved");render()},
+  import(){document.getElementById("xlsxfile").click()},
+  async sample(){const j=sampleJob();await saveJob(j);S.jobs.push(j);openJob(j.id)},
+  open(el){openJob(el.dataset.id)},
+  whoami(){modal(mWho())},
+  async pickme(el){S.settings.current=S.settings.techs[+el.dataset.i];await saveSettings();afterWho()},
+  async addme(){const n=document.getElementById("wname").value.trim(),i=document.getElementById("winit").value.trim().toUpperCase();if(!n||!i){toast("Enter your name and initials");return}const t={name:n,initials:i};S.settings.techs.push(t);S.settings.current=t;await saveSettings();afterWho()},
+  filter(el){S.filter=el.dataset.f;render()},
+  machine(){S.view="machine";render()},
+  settype(el){document.querySelectorAll("[data-detail]").forEach(i=>S.job.details[i.dataset.detail]=i.value.trim());S.job.details.assetType=el.dataset.t;saveJob(S.job);render()},
+  async pickType(el){S.job.details.assetType=el.dataset.t;await saveJob(S.job);S.modal=null;S.view="machine";render()},
+  async savemachine(){if(!S.job.details.assetType)S.job.details.assetType=assetType(S.job);document.querySelectorAll("[data-detail]").forEach(i=>S.job.details[i.dataset.detail]=i.value.trim());await saveJob(S.job);toast("Saved");S.view="job";render()},
+  backjob(){S.view="job";S.modal=null;render()},
+  part(el){const p=S.job.parts.find(x=>x.uid===el.dataset.uid);
+    if(p.status==="pending"){modal(mApprove(p));return}
+    if(p.status==="rejected"){toast("This extra part wasn't approved");return}
+    if(!S.settings.current){modal(mWho());return}
+    S.partUid=p.uid;S.step=p.doneAt?steps(p).length-1:0;S.timerStart=Date.now();S.view="wizard";render();window.scrollTo(0,0)},
+  async closepart(){const p=curPart();stopTimer(p);await saveJob(S.job);S.view="job";render()},
+  async ans(el){const p=curPart();p.answers[el.dataset.k]=el.dataset.v;persistPart(p);
+    if(el.dataset.k==="status"&&S.step>=steps(p).length) S.step=steps(p).length-1;
+    if(el.dataset.k!=="damageYN"||el.dataset.v==="no"){S.step=Math.min(S.step+1,steps(p).length-1)}
+    render();window.scrollTo(0,0)},
+  async setans(el){const p=curPart();p.answers[el.dataset.k]=el.dataset.v;persistPart(p);render()},
+  async addobs(el){const p=curPart();const t=document.querySelector('[data-ans="obs"]');p.answers.obs=(t.value.trim()?t.value.trim()+". ":"")+el.dataset.v+": ";persistPart(p);render();const n=document.querySelector('[data-ans="obs"]');n.focus();n.setSelectionRange(n.value.length,n.value.length)},
+  next(){const p=curPart();S.step=Math.min(S.step+1,steps(p).length-1);render();window.scrollTo(0,0)},
+  back(){S.step=Math.max(0,S.step-1);render();window.scrollTo(0,0)},
+  goto(el){S.step=+el.dataset.s;render();window.scrollTo(0,0)},
+  shoot(){document.getElementById("camera").click()},
+  async delphoto(el){const p=curPart();const k=p.photos.splice(+el.dataset.i,1)[0];await db.del("photos",k);persistPart(p);render()},
+  async finish(){const p=curPart();const m=parseInt(document.getElementById("mins").value);stopTimer(p);if(m>=0)p.timeSecs=m*60;
+    const first=!p.doneAt;p.doneAt=Date.now();if(first){p.dateRemoved=today();p.initials=S.settings.current?.initials||""}
+    if(!S.job.details.start)S.job.details.start=today();
+    if(S.job.parts.filter(isActive).every(x=>x.doneAt))S.job.details.complete=today();
+    persistPart(p);S.view="job";render();toast(goesLive(p)?`${p.name} is ready to send`:`${p.name} saved`)},
+  exportmenu(){modal(mExport())},
+  close(){closeModal()},
+  async "exp-new"(){S.modal=null;await exportJob("new")},
+  async "exp-full"(){S.modal=null;render();await exportJob("full")},
+  listings(){S.modal=null;S.view="listings";render()},
+  async redraft(el){const p=S.job.parts.find(x=>x.uid===el.dataset.uid);p.title="";p.description="";persistPart(p);render()},
+  extra(){if(!S.settings.current){modal(mWho());return}modal(mExtra())},
+  async xsave(){const n=document.getElementById("xname").value.trim(),why=document.getElementById("xwhy").value.trim();if(!n||!why){toast("Name the part and say why");return}
+    const lib=LIB.find(([x])=>x.toLowerCase()===n.toLowerCase());
+    const p=newPart(S.job,0,{name:lib?lib[0]:n,category:lib?lib[1]:"",location:document.getElementById("xloc").value,status:"pending",extra:{reason:why,requestedBy:S.settings.current.name,requestedAt:Date.now()}});
+    S.job.parts.push(p);await saveJob(S.job);S.modal=null;S.filter="todo";render();toast("Sent for sign-off")},
+  async xapprove(el){const p=S.job.parts.find(x=>x.uid===el.dataset.uid);const pin=document.getElementById("mpin").value.trim(),nm=document.getElementById("mname").value.trim();
+    if(pin!==S.settings.pin){document.getElementById("merr").hidden=false;return}
+    const line=Math.max(0,...S.job.parts.map(x=>x.line||0))+1;p.line=line;p.id=S.job.details.jobNo+"-"+pad3(line);p.status="active";p.extra.approvedBy=nm||"Manager";p.extra.approvedAt=Date.now();
+    await saveJob(S.job);closeModal();toast(`Approved as ${p.id}`)},
+  async xreject(el){const p=S.job.parts.find(x=>x.uid===el.dataset.uid);const pin=document.getElementById("mpin").value.trim();if(pin!==S.settings.pin){document.getElementById("merr").hidden=false;return}
+    p.status="rejected";await saveJob(S.job);closeModal()}
+};
+$app.addEventListener("click",e=>{const el=e.target.closest("[data-act]");if(!el||el.disabled)return;const f=ACT[el.dataset.act];if(f){e.preventDefault();Promise.resolve(f(el)).catch(err=>toast(err.message||"Something went wrong"))}});
+let inputTimer=null;
+$app.addEventListener("input",e=>{
+  const t=e.target;
+  if(t.dataset.ans){const p=curPart();p.answers[t.dataset.ans]=t.value;clearTimeout(inputTimer);inputTimer=setTimeout(()=>persistPart(p),400);
+    const ss=steps(p),st=ss[S.step],nb=document.querySelector('[data-act="next"]');if(nb)nb.disabled=!stepValid(p,st)}
+  if(t.dataset.list){const p=S.job.parts.find(x=>x.uid===t.dataset.uid);p[t.dataset.list]=t.value;clearTimeout(inputTimer);inputTimer=setTimeout(()=>persistPart(p),400)}
+});
+$app.addEventListener("change",async e=>{const t=e.target;if(t.dataset.ansCheck){const p=curPart();p.answers[t.dataset.ansCheck]=t.checked;if(t.dataset.ansCheck==="oemNone"&&t.checked)p.answers.oem="";persistPart(p);render()}});
+document.getElementById("camera").addEventListener("change",async e=>{
+  const f=e.target.files[0];e.target.value="";if(!f)return;const p=curPart();if(!p)return;
+  try{const b=await resizePhoto(f);const k=`${S.job.id}/${p.uid}/${uid()}`;await db.put("photos",k,b);p.photos=p.photos||[];p.photos.push(k);persistPart(p);render()}catch(err){toast(err.message)}
+});
+document.getElementById("xlsxfile").addEventListener("change",async e=>{
+  const f=e.target.files[0];e.target.value="";if(!f)return;
+  try{toast("Reading spreadsheet…");const j=await importWorkbook(f);await saveJob(j);S.jobs.push(j);toast(`Loaded ${j.parts.length} parts`);await openJob(j.id);if(S.settings.current)modal(mAssetType())}catch(err){toast(err.message||"Couldn't read that file")}
+});
+
+(async function boot(){
+  try{ if("serviceWorker" in navigator && (location.protocol==="https:"||location.hostname==="localhost") && !/claude\.ai|claudeusercontent/.test(location.hostname)) navigator.serviceWorker.register("sw.js"); }catch(e){}
+  try{ if(navigator.storage&&navigator.storage.persist) navigator.storage.persist(); }catch(e){}
+  idb=await openDB();
+  try{const s=await db.get("kv","settings");if(s)S.settings=Object.assign(S.settings,s)}catch(e){}
+  try{S.jobs=(await db.all("jobs"))||[]}catch(e){S.jobs=[]}
+  render();
+})();
+</script>
+</body></html>
