@@ -500,7 +500,7 @@ function vJob(){
   <section class="card"><div class="stat"><span><b>${done}/${act.length}</b><span class="muted small">parts done</span></span><span><b>${toSend}</b><span class="muted small">ready to send</span></span>${(()=>{const m=act.filter(p=>!p.doneAt).reduce((a,p)=>a+(+p.estMins||0),0);return m?`<span><b>${fmtMins(m)}</b><span class="muted small">guide time left</span></span>`:""})()}${pend.length?`<span><b style="color:var(--bad)">${pend.length}</b><span class="muted small">awaiting sign-off</span></span>`:""}</div>
     <div class="progress"><i style="width:${Math.round(done/Math.max(1,act.length)*100)}%"></i></div>
     <div class="row"><button class="btn" data-act="machine">Asset details</button><button class="btn" data-act="extra">Request extra part</button><button class="btn primary grow" data-act="exportmenu">Send parts${toSend?` (${toSend})`:""}</button></div>
-    ${S.manager?`<div class="row"><button class="btn" data-act="inspect">${j.inspection?"Teardown inspection":"Start teardown inspection"}</button><button class="btn" data-act="sendjob">Send job to another tablet</button></div>`:""}</section>
+    ${S.manager?`<div class="row"><button class="btn" data-act="inspect">${j.inspection?"Teardown inspection":"Start teardown inspection"}</button><button class="btn" data-act="sendjob">Send job to another tablet</button><button class="btn danger" data-act="deljob">Delete job</button></div>`:""}</section>
   <div class="tabs" role="group" aria-label="Show parts">${[["todo","To do"],["done","Done"],["all","All"]].map(([k,l])=>`<button data-act="filter" data-f="${k}" aria-pressed="${f===k}">${l}</button>`).join("")}</div>
   <div class="parts">${list.map(p=>{const [lbl,c]=partState(p);return `<button class="part" data-act="part" data-uid="${p.uid}"><span class="stripe ${c}"></span><span class="grow"><span class="nm">${esc(p.name)}</span><br><span class="muted small">${[p.id&&`<span class="mono">${esc(p.id)}</span>`,esc(p.location),p.priority&&`${esc(p.priority)} priority`,p.exportedAt&&!needsSend(p)&&"sent"].filter(Boolean).join(" · ")}</span></span><span class="chip ${c}">${lbl}</span></button>`}).join("")||`<p class="muted">Nothing here.</p>`}</div></main>`;
 }
@@ -510,7 +510,7 @@ function vJobInsp(){
   <section class="card"><h2>Teardown inspection</h2>
   ${S.manager?`<div class="stat"><span><b>${st.sale}</b><span class="muted small">saleable</span></span><span><b>${st.nosale}</b><span class="muted small">not saleable</span></span><span><b>${st.na}</b><span class="muted small">not on asset</span></span><span><b>${st.open}</b><span class="muted small">not checked</span></span></div>
     <div class="progress"><i style="width:${Math.round((st.total-st.open)/st.total*100)}%"></i></div>
-    <div class="row"><button class="btn" data-act="machine">Asset details</button><button class="btn primary grow" data-act="inspect">${st.total-st.open?"Continue inspection":"Start inspection"}</button></div>`
+    <div class="row"><button class="btn" data-act="machine">Asset details</button><button class="btn primary grow" data-act="inspect">${st.total-st.open?"Continue inspection":"Start inspection"}</button></div><div class="row"><button class="btn danger" data-act="deljob">Delete job</button></div>`
   :`<p class="muted" style="margin:0">A manager is still inspecting this asset. The parts to remove will appear here once the work order is created.</p><button class="btn" data-act="mgr">Manager sign in</button>`}</section></main>`;
 }
 function vMachine(){
@@ -599,6 +599,12 @@ function mExtra(){return `<div class="card"><h2>Request extra part</h2><p class=
   <label class="f">Why is it worth pulling?<textarea id="xwhy" style="min-height:90px"></textarea></label>
   <div class="row"><button class="btn" data-act="close">Cancel</button><button class="btn primary grow" data-act="xsave">Request sign-off</button></div></div>`}
 function mMgr(){return `<div class="card"><h2>Manager sign in</h2><p class="muted small" style="margin:0">Shows office notes and the titles and prices screen. Sign out before handing the tablet back.</p><label class="f">Manager PIN<input type="password" inputmode="numeric" id="mgpin" autocomplete="off"></label><p class="missing small" id="mgerr" hidden>That PIN isn't right.</p><div class="row"><button class="btn" data-act="close">Cancel</button><button class="btn primary grow" data-act="mgrok">Sign in</button></div></div>`}
+function mDelJob(){const j=S.job,unsent=j.parts.filter(needsSend).length,photos=j.parts.reduce((a,p)=>a+(p.photos||[]).length,0);
+  return `<div class="card"><h2>Delete ${esc(j.details.jobNo)}?</h2><p style="margin:0">This removes the job, its inspection, every answer and ${photos} photo${photos===1?"":"s"} from this tablet. It can't be undone.</p>
+  ${unsent?`<div class="warnbox"><b>${unsent} finished part${unsent===1?" hasn't":"s haven't"} been sent yet.</b> Use Send parts first if you still need them.</div>`:""}
+  <p class="muted small" style="margin:0">Copies of the job on other tablets aren't affected.</p>
+  <label class="f">Type the job number to confirm<input type="text" id="deljno" autocomplete="off" autocapitalize="characters"></label>
+  <div class="row"><button class="btn" data-act="close">Cancel</button><button class="btn danger grow" data-act="deljobok" style="background:var(--bad);color:#fff">Delete job</button></div></div>`}
 function mApprove(p){return `<div class="card"><h2>Sign off extra part</h2><div class="info"><dl><dt>Part</dt><dd>${esc(p.name)}</dd><dt>Location</dt><dd>${esc(p.location)}</dd><dt>Requested by</dt><dd>${esc(p.extra.requestedBy)}</dd><dt>Reason</dt><dd>${esc(p.extra.reason)}</dd></dl></div>
   <label class="f">Manager name<input type="text" id="mname" autocomplete="off"></label><label class="f">Manager PIN<input type="password" inputmode="numeric" id="mpin" autocomplete="off"></label>
   <p class="missing small" id="merr" hidden>That PIN isn't right.</p>
@@ -676,6 +682,10 @@ const ACT = {
   inspall(el){const it=S.job.inspection.items;inspItems(S.job).filter(x=>x.category===S.inspCat&&!it[x.key]?.state).forEach(x=>it[x.key]={state:el.dataset.s});saveJob(S.job);render()},
   custadd(el){const n=document.getElementById("custname").value.trim();if(!n){toast("Type the part name");return}const key="c:"+uid();S.job.inspection.custom.push({key,name:n,category:el.dataset.c});S.job.inspection.items[key]={state:"sale",estMins:guideFor(n)?.mins||30};saveJob(S.job);render()},
   wo(){modal(mWo())},
+  deljob(){if(!S.manager){modal(mMgr());return}modal(mDelJob())},
+  async deljobok(){const j=S.job;if(document.getElementById("deljno").value.trim().toUpperCase()!==String(j.details.jobNo).toUpperCase()){toast("Job number doesn't match");return}
+    for(const p of j.parts)for(const k of (p.photos||[])){try{await db.del("photos",k)}catch(e){}S.thumbs.delete(k)}
+    await db.del("jobs",j.id);S.jobs=S.jobs.filter(x=>x.id!==j.id);S.job=null;S.modal=null;S.view="home";render();toast(`Deleted ${j.details.jobNo}`)},
   tstep(el){const v=S.job.inspection.items[el.dataset.key];if(!v)return;const m=+v.estMins||0,step=m<30||(m===30&&el.dataset.d<0)?5:m<120||(m===120&&el.dataset.d<0)?15:30;v.estMins=Math.max(5,m+(+el.dataset.d)*step);saveJob(S.job);const y=window.scrollY;render();window.scrollTo(0,y)},
   tguide(el){const v=S.job.inspection.items[el.dataset.key];const x=inspItems(S.job).find(y=>y.key===el.dataset.key);const g=x&&guideFor(x.name);if(v&&g){v.estMins=g.mins;saveJob(S.job);const y=window.scrollY;render();window.scrollTo(0,y)}},
   async wook(){const r=buildWorkOrder(S.job);await saveJob(S.job);S.modal=null;S.view="job";S.filter="todo";render();toast(`Work order: ${r.added} added${r.removed?`, ${r.removed} removed`:""}${r.updated?`, ${r.updated} updated`:""}`)},
