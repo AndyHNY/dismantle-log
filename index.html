@@ -177,7 +177,7 @@ function toast(msg){ document.querySelectorAll(".toast").forEach(x=>x.remove());
 function partState(p){
   if(p.status==="pending") return ["Awaiting sign-off","s-pend"];
   if(p.status==="rejected") return ["Not approved","s-np"];
-  if(p.doneAt){ if(p.answers.status==="notpresent") return ["Not present","s-np"]; if(p.answers.status==="damaged") return ["Damaged","s-dmg"]; return ["Done","s-done"]; }
+  if(p.doneAt){ if(p.answers.status==="notpresent") return ["Not present","s-np"]; if(p.answers.grade==="D") return ["Scrap","s-np"]; if(p.answers.status==="damaged") return ["Damaged","s-dmg"]; return ["Done","s-done"]; }
   if(p.answers && Object.keys(p.answers).length) return ["In progress","s-prog"];
   return ["To do","s-todo"];
 }
@@ -295,7 +295,7 @@ function stockRow(job,p){
 const STATUS_TXT={removed:"Yes",damaged:"Damaged",notpresent:"Not Present"};
 function logRows(job){
   const rows=[["Part ID","Part Name","Location","Removed?","Condition Grade","Technician Observations","Damage Found","OEM / Part Number","Other Marked / Cast Numbers","Manufacturer / Brand","Time Taken (mins)","Date Removed","Technician Initials","Photos","Photos to follow","Added on the job","Approved by"]];
-  job.parts.filter(isActive).forEach(p=>{const a=p.answers;rows.push([p.id,p.name,p.location,p.doneAt?STATUS_TXT[a.status]:"No",a.grade||"",a.obs||"",a.damageYN==="yes"?a.damage:(a.damageYN==="no"?"None":""),a.oemNone?"Not found":(a.oem||""),a.alt||"",a.maker||"",p.doneAt?Math.round(p.timeSecs/60):"",p.dateRemoved||"",p.initials||"",(p.photos||[]).length,a.photosToFollow?"Yes":"",p.extra?"Yes":"",p.extra?.approvedBy||""])});
+  job.parts.filter(isActive).forEach(p=>{const a=p.answers;rows.push([p.id,p.name,p.location,p.doneAt?STATUS_TXT[a.status]:"No",a.grade||"",a.obs||"",a.damageYN==="yes"?a.damage:(a.damageYN==="no"?"None":""),a.oemNone?"Not found":(a.oem||""),a.alt||"",a.maker||"",p.doneAt?Math.round(p.timeSecs/60):"",p.dateRemoved||"",p.initials||"",(p.photos||[]).length,a.photosToFollow?"Yes":"",p.extra?"Yes":p.salvagedFrom?"Removed from "+(job.parts.find(x=>x.uid===p.salvagedFrom)?.id||""):"",p.extra?.approvedBy||""])});
   return rows;
 }
 const CRC=(()=>{const t=new Uint32Array(256);for(let n=0;n<256;n++){let c=n;for(let k=0;k<8;k++)c=c&1?0xEDB88320^(c>>>1):c>>>1;t[n]=c>>>0}return t})();
@@ -338,7 +338,7 @@ async function exportJob(kind){
 /* ---------- wizard ---------- */
 function steps(p){
   const s=["info","status"];
-  if(!p.answers.status||p.answers.status!=="notpresent"){s.push("grade","oem","alt","maker","obs","damage");if(p.answers.grade!=="D")s.push("photos")}
+  if(!p.answers.status||p.answers.status!=="notpresent"){if(p.answers.grade==="D")s.push("grade","obs","damage","salvage");else s.push("grade","oem","alt","maker","obs","damage","photos")}
   s.push("review"); return s;
 }
 function stepValid(p,st){
@@ -348,13 +348,13 @@ function stepValid(p,st){
     case "grade": return !!a.grade;
     case "oem": return !!(a.oemNone||(a.oem&&a.oem.trim()));
     case "maker": return !!(a.maker&&a.maker.trim());
-    case "obs": return a.grade==="A"||!!(a.obs&&a.obs.trim());
+    case "obs": return true;
     case "damage": return a.damageYN==="no"||(a.damageYN==="yes"&&!!(a.damage&&a.damage.trim()));
     case "photos": return !!a.photosToFollow||(!!a.prepped&&(p.photos||[]).length>0);
     default: return true;
   }
 }
-const STEP_LABEL={status:"What happened",grade:"Condition",oem:"OEM / part number",alt:"Other numbers",maker:"Manufacturer / brand",obs:"Observations",damage:"Damage",photos:"Photos"};
+const STEP_LABEL={status:"What happened",grade:"Condition",oem:"OEM / part number",alt:"Other numbers",maker:"Manufacturer / brand",obs:"Observations",damage:"Damage",photos:"Photos",salvage:"Removed before scrapping"};
 function reviewValue(p,st){
   const a=p.answers;
   switch(st){
@@ -363,7 +363,8 @@ function reviewValue(p,st){
     case "oem": return a.oemNone?"Couldn't find one":a.oem;
     case "alt": return a.alt||"None";
     case "maker": return a.maker;
-    case "obs": return a.obs||(a.grade==="A"?"None (grade A)":"");
+    case "obs": return a.obs||"Nothing to add";
+    case "salvage": {const n=S.job.parts.filter(x=>x.salvagedFrom===p.uid).length;return n?`${n} part${n>1?"s":""} added to the work order`:"Nothing";}
     case "damage": return a.damageYN==="no"?"None":a.damageYN==="yes"?a.damage:"";
     case "photos": return a.photosToFollow?"Photos to follow":(p.photos||[]).length?`${p.photos.length} photo${p.photos.length>1?"s":""}`:"";
   }
@@ -402,7 +403,7 @@ function vJob(){
   const list=j.parts.filter(p=>{const [,c]=partState(p);if(f==="todo")return !p.doneAt&&p.status!=="rejected";if(f==="done")return !!p.doneAt;return true});
   const prio={High:0,Medium:1,Low:2};
   list.sort((a,b)=>(a.status==="pending"?-1:0)-(b.status==="pending"?-1:0)||(prio[a.priority]??3)-(prio[b.priority]??3)||a.line-b.line);
-  return bar(esc(assetName(j)),`<span class="mono">${esc(d.jobNo)}</span> · ${tech?`Working: ${esc(tech.name)} (${esc(tech.initials)})`:"No technician selected"}`,`<button data-act="home">Jobs</button>`,`<button data-act="whoami">Change tech</button>`)+`<main class="wrap">
+  return bar(esc(assetName(j)),`<span class="mono">${esc(d.jobNo)}</span> · ${tech?`Working: ${esc(tech.name)} (${esc(tech.initials)})`:"No technician selected"}${S.manager?" · Manager signed in":""}`,`<button data-act="home">Jobs</button>`,`<span class="row"><button data-act="whoami">Change tech</button><button data-act="mgr">${S.manager?"Manager sign out":"Manager"}</button></span>`)+`<main class="wrap">
   ${j.sample?`<div class="sample">This is a sample job for trying the app. Nothing here is real stock.</div>`:""}
   <section class="card"><div class="stat"><span><b>${done}/${act.length}</b><span class="muted small">parts done</span></span><span><b>${toSend}</b><span class="muted small">ready to send</span></span>${pend.length?`<span><b style="color:var(--bad)">${pend.length}</b><span class="muted small">awaiting sign-off</span></span>`:""}</div>
     <div class="progress"><i style="width:${Math.round(done/Math.max(1,act.length)*100)}%"></i></div>
@@ -431,7 +432,8 @@ function vWizard(){
       <div class="info"><dl><dt>Location</dt><dd>${esc(p.location)||"—"}</dd><dt>Qty</dt><dd>${esc(p.qty)}</dd>${p.priority?`<dt>Priority</dt><dd>${esc(p.priority)}</dd>`:""}${p.estMins?`<dt>Est. time</dt><dd>${esc(p.estMins)} mins</dd>`:""}${p.tools?`<dt>Tools</dt><dd>${esc(p.tools)}</dd>`:""}</dl></div>
       ${p.instructions?`<div><h3>How to remove it</h3><p style="margin:.3em 0 0;white-space:pre-wrap">${esc(p.instructions)}</p></div>`:""}
       ${p.warnings?`<div class="warnbox"><b>Take care:</b> ${esc(p.warnings)}</div>`:""}
-      ${p.notes?`<p class="muted small" style="margin:0">Office note: ${esc(p.notes)}</p>`:""}
+      ${p.notes&&S.manager?`<div class="warnbox" style="border-left-color:var(--info)"><b>Office note (manager only):</b> ${esc(p.notes)}</div>`:""}
+      ${p.salvagedFrom?`<p class="muted small" style="margin:0">Taken off ${esc(S.job.parts.find(x=>x.uid===p.salvagedFrom)?.id||"another part")} before it was scrapped.</p>`:""}
       ${p.extra?`<p class="muted small" style="margin:0">Added on the job: ${esc(p.extra.reason)}. Approved by ${esc(p.extra.approvedBy)}.</p>`:""}`;break;
     case "status": body=`<h2 class="q">What happened to this part?</h2><div class="choices c3">${[["removed","Removed","Off the asset and stocked"],["damaged","Damaged","Broke on removal or was already broken"],["notpresent","Not present","Not on this asset"]].map(([k,l,s])=>`<button class="choice" data-act="ans" data-k="status" data-v="${k}" aria-pressed="${a.status===k}"><b>${l}</b><span>${s}</span></button>`).join("")}</div>`;break;
     case "grade": body=`<h2 class="q">What condition is it in?</h2><p class="muted" style="margin:0">Grade what you see, not what you expect.</p><div class="choices c4">${Object.entries(GRADES).map(([g,m])=>`<button class="choice" data-act="ans" data-k="grade" data-v="${g}" aria-pressed="${a.grade===g}"><b>${g}</b><span>${m}</span></button>`).join("")}</div>`;break;
@@ -440,8 +442,15 @@ function vWizard(){
     case "alt": body=`<h2 class="q">Any other marked or cast numbers?</h2><input type="text" data-ans="alt" value="${esc(a.alt)}" autocomplete="off" autocapitalize="characters" placeholder="Leave blank if none">`;break;
     case "maker": {const sug=[...new Set([S.job.details.make,S.job.details.assemblyMake,...S.job.parts.map(x=>x.answers.maker)].filter(Boolean))];
       body=`<h2 class="q">Manufacturer / brand</h2><input type="text" data-ans="maker" value="${esc(a.maker)}" autocomplete="off"><div class="chips">${sug.map(s=>`<button data-act="setans" data-k="maker" data-v="${esc(s)}">${esc(s)}</button>`).join("")}</div>`;break;}
-    case "obs": body=`<h2 class="q">What did you find that a photo won't show?</h2><p class="muted" style="margin:0">${a.grade==="A"?"Optional for grade A. ":""}Tap the microphone on the keyboard to talk instead of typing.</p>
-      <textarea data-ans="obs" placeholder="Previous repairs, seized bolts, corrosion, broken tabs, wear…">${esc(a.obs)}</textarea><div class="chips">${OBS_PROMPTS.map(s=>`<button data-act="addobs" data-v="${esc(s)}">+ ${esc(s)}</button>`).join("")}</div>`;break;
+    case "obs": body=`<h2 class="q">What did you find that a photo won't show?</h2><p class="muted" style="margin:0">Tap the microphone on the keyboard to talk instead of typing. If there's nothing to add, skip it.</p>
+      <textarea data-ans="obs" placeholder="Previous repairs, seized bolts, corrosion, broken tabs, wear…">${esc(a.obs)}</textarea><div class="chips">${OBS_PROMPTS.map(s=>`<button data-act="addobs" data-v="${esc(s)}">+ ${esc(s)}</button>`).join("")}</div>
+      ${a.obs&&a.obs.trim()?"":`<button class="btn block" data-act="next">Nothing to add, skip</button>`}`;break;
+    case "salvage": {const subs=S.job.parts.filter(x=>x.salvagedFrom===p.uid);
+      body=`<h2 class="q">Anything to take off it before it's scrapped?</h2><p class="muted" style="margin:0">If the work order says to remove something from this part first, add it here. It goes on the work order as its own part, so its details and photos are captured separately.</p>
+      ${subs.length?`<div class="parts">${subs.map(x=>`<div class="card" style="padding:10px 14px"><b>${esc(x.name)}</b><span class="mono muted small">${esc(x.id)}</span></div>`).join("")}</div>`:""}
+      <label class="f">Part to remove<input type="search" id="sname" list="libnames" autocomplete="off" placeholder="Start typing, e.g. Sensor"></label><datalist id="libnames">${LIB.map(([n])=>`<option value="${esc(n)}">`).join("")}</datalist>
+      <button class="btn dark block" data-act="addsalvage">Add to work order</button>
+      <p class="muted small" style="margin:0">Nothing to remove? Tap Next.</p>`;break;}
     case "damage": body=`<h2 class="q">Any damage?</h2>${a.status==="damaged"||a.grade==="C"||a.grade==="D"?`<p class="muted" style="margin:0">You marked this ${a.status==="damaged"?"as damaged":"grade "+a.grade}, so describe the damage.</p>`:""}
       <div class="choices c3">${[["no","No damage"],["yes","Yes, there's damage"]].map(([k,l])=>`<button class="choice" data-act="ans" data-k="damageYN" data-v="${k}" aria-pressed="${a.damageYN===k}"><b>${l}</b></button>`).join("")}</div>
       ${a.damageYN==="yes"?`<textarea data-ans="damage" placeholder="Where, how bad, does it affect use?">${esc(a.damage)}</textarea>`:""}`;break;
@@ -479,13 +488,14 @@ function mExport(){const n=S.job.parts.filter(needsSend).length,held=S.job.parts
   return `<div class="card"><h2>Send parts</h2>
   <button class="btn primary block" data-act="exp-new" ${n?"":"disabled"}>Send ${n} new part${n===1?"":"s"}</button><p class="muted small" style="margin:0">Finished parts not sent yet, plus any changed since. One zip: stock CSV and photos, ready to upload.${held?` ${held} part${held>1?"s are":" is"} held back waiting for photos.`:""}</p>
   <button class="btn block" data-act="exp-full">Download full job</button><p class="muted small" style="margin:0">Every part including Damaged and Not present, as a dismantle log CSV for your records, plus the stock CSV and all photos.</p>
-  <button class="btn block" data-act="listings">Office: check titles and prices</button>
+  ${S.manager?`<button class="btn block" data-act="listings">Office: check titles and prices</button>`:`<p class="muted small" style="margin:0">Sign in as manager to check titles and prices.</p>`}
   <button class="btn block" data-act="close">Close</button></div>`}
 function mExtra(){return `<div class="card"><h2>Request extra part</h2><p class="muted small" style="margin:0">For saleable parts that aren't on the list. A manager signs it off before you start.</p>
   <label class="f">Part<input type="search" id="xname" list="libnames" autocomplete="off" placeholder="Start typing, e.g. Mirror"></label><datalist id="libnames">${LIB.map(([n])=>`<option value="${esc(n)}">`).join("")}</datalist>
   <label class="f">Location<select id="xloc">${LOCATIONS.map(l=>`<option>${l}</option>`).join("")}</select></label>
   <label class="f">Why is it worth pulling?<textarea id="xwhy" style="min-height:90px"></textarea></label>
   <div class="row"><button class="btn" data-act="close">Cancel</button><button class="btn primary grow" data-act="xsave">Request sign-off</button></div></div>`}
+function mMgr(){return `<div class="card"><h2>Manager sign in</h2><p class="muted small" style="margin:0">Shows office notes and the titles and prices screen. Sign out before handing the tablet back.</p><label class="f">Manager PIN<input type="password" inputmode="numeric" id="mgpin" autocomplete="off"></label><p class="missing small" id="mgerr" hidden>That PIN isn't right.</p><div class="row"><button class="btn" data-act="close">Cancel</button><button class="btn primary grow" data-act="mgrok">Sign in</button></div></div>`}
 function mApprove(p){return `<div class="card"><h2>Sign off extra part</h2><div class="info"><dl><dt>Part</dt><dd>${esc(p.name)}</dd><dt>Location</dt><dd>${esc(p.location)}</dd><dt>Requested by</dt><dd>${esc(p.extra.requestedBy)}</dd><dt>Reason</dt><dd>${esc(p.extra.reason)}</dd></dl></div>
   <label class="f">Manager name<input type="text" id="mname" autocomplete="off"></label><label class="f">Manager PIN<input type="password" inputmode="numeric" id="mpin" autocomplete="off"></label>
   <p class="missing small" id="merr" hidden>That PIN isn't right.</p>
@@ -505,7 +515,7 @@ function closeModal(){S.modal=null;render()}
 async function openJob(id){S.job=S.jobs.find(j=>j.id===id);S.view="job";S.filter="todo";S.modal=S.settings.current?null:mWho();render()}
 function persistPart(p){p.changedAt=Date.now();return saveJob(S.job).catch(()=>toast("Couldn't save on this tablet. Export soon."))}
 const ACT = {
-  home(){S.view="home";S.job=null;render()},
+  home(){S.view="home";S.job=null;S.manager=false;render()},
   settings(){S.view="settings";render()},
   async addtech(){const n=document.getElementById("tname").value.trim(),i=document.getElementById("tinit").value.trim().toUpperCase();if(!n||!i){toast("Enter a name and initials");return}S.settings.techs.push({name:n,initials:i});await saveSettings();render()},
   async deltech(el){S.settings.techs.splice(+el.dataset.i,1);await saveSettings();render()},
@@ -548,7 +558,13 @@ const ACT = {
   close(){closeModal()},
   async "exp-new"(){S.modal=null;await exportJob("new")},
   async "exp-full"(){S.modal=null;render();await exportJob("full")},
-  listings(){S.modal=null;S.view="listings";render()},
+  listings(){if(!S.manager)return;S.modal=null;S.view="listings";render()},
+  mgr(){if(S.manager){S.manager=false;if(S.view==="listings")S.view="job";render();toast("Manager signed out");return}modal(mMgr())},
+  mgrok(){const pin=document.getElementById("mgpin").value.trim();if(pin!==S.settings.pin){document.getElementById("mgerr").hidden=false;return}S.manager=true;closeModal();toast("Manager signed in")},
+  async addsalvage(){const p=curPart();const n=document.getElementById("sname").value.trim();if(!n){toast("Name the part to remove");return}
+    const lib=LIB.find(([x])=>x.toLowerCase()===n.toLowerCase());const line=Math.max(0,...S.job.parts.map(x=>x.line||0))+1;
+    S.job.parts.push(newPart(S.job,line,{name:lib?lib[0]:n,category:lib?lib[1]:p.category,location:p.location,priority:p.priority,salvagedFrom:p.uid}));
+    persistPart(p);render();toast(`Added ${lib?lib[0]:n} to the work order`)},
   async redraft(el){const p=S.job.parts.find(x=>x.uid===el.dataset.uid);p.title="";p.description="";persistPart(p);render()},
   extra(){if(!S.settings.current){modal(mWho());return}modal(mExtra())},
   async xsave(){const n=document.getElementById("xname").value.trim(),why=document.getElementById("xwhy").value.trim();if(!n||!why){toast("Name the part and say why");return}
